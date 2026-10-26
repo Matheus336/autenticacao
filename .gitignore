@@ -1,0 +1,30 @@
+# Dependencies and build output
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/coverage/
+**/*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local database and generated runtime data
+/api/data/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# Logs, archives, and editor/OS files
+*.log
+*.trace
+*.zip
+*.tar.gz
+*.tgz
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
