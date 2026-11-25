@@ -1,225 +1,520 @@
-# Trabalho Prático 1 — Projeto 3 · Autenticação segura e gestão de identidades
+# UNIVERSIDADE TECNOLÓGICA FEDERAL DO PARANÁ — CÂMPUS DOIS VIZINHOS
 
-| Campo | Identificação |
+**SA28S — SEGURANÇA E AUDITORIA EM SISTEMAS**
+
+**TRABALHO PRÁTICO 1 — PROJETO 3**
+
+**RELATÓRIO TÉCNICO DE AUDITORIA: IMPLEMENTAÇÃO DE AUTENTICAÇÃO SEGURA E GESTÃO DE IDENTIDADES**
+
+| Integrantes |
+| --- |
+| Ana Clara Rodrigues Marques Santana |
+| Caio Almeida Carvalho Lima |
+| Cleiton Horalino Soares de Morais |
+| Felipe Rodrigo Ferreira |
+| Grazieli Maria Sarturi |
+| Matheus Felipe de Aguiar |
+| Murilo Pedron Dal Molim |
+| Pedro Luciano Moura Kuhn |
+
+Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas (SA28S) da Universidade Tecnológica Federal do Paraná, como entrega do Trabalho Prático 1 (Projeto 3).
+
+Professor: Erinaldo da Silva Pereira
+
+DOIS VIZINHOS — 2026
+
+## Controle de versões
+
+| Versão | Data | Responsável | Descrição |
+| --- | --- | --- | --- |
+| 1.0 | 23/11/2026 | Grupo | Versão inicial: inspeção do código e verificações manuais. |
+| 2.0 | 25/11/2026 | Grupo | Testes automatizados com evidências, comparação antes × depois, achados classificados por CVSS 3.1 e estrutura conforme ABNT NBR 10719 e OWASP WSTG. |
+
+## Resumo
+
+Este relatório audita o módulo de autenticação desenvolvido pelo grupo no Projeto 3: uma API em Bun/Elysia com banco SQLite. O módulo implementa hash de senha com Argon2id, política de senha, autenticação multifator por TOTP, limitação de tentativas com bloqueio temporário e sessões em cookie HttpOnly. A avaliação seguiu o OWASP ASVS 4.0.3 e o OWASP WSTG e usou 14 testes automatizados. Os testes simulam força bruta, credential stuffing e sequestro de sessão contra a API e contra um servidor de referência sem esses controles. Na API, a força bruta foi bloqueada após 5 falhas. O credential stuffing não abriu nenhuma sessão em contas com TOTP ativo, e o logout invalidou cópias do cookie. O relatório registra 12 achados (2 de severidade alta, 8 média e 2 baixa): 5 comprovados por teste, 4 comprovados em parte e 3 identificados por inspeção do código.
+
+**Palavras-chave:** autenticação; TOTP; força bruta; gerenciamento de sessão; OWASP ASVS.
+
+## Sumário
+
+1 Introdução
+1.1 Objetivo
+1.2 Escopo
+1.3 Cronograma
+1.4 Limitações
+1.5 Aviso
+2 Sumário executivo
+3 Metodologia
+3.1 Referências de avaliação
+3.2 Comparação antes × depois
+3.3 Execução dos testes
+4 Sistema avaliado e controles implementados
+4.1 Arquitetura
+4.2 Atendimento ao Projeto 3
+5 Testes e resultados
+5.1 Força bruta contra a senha
+5.2 Força bruta contra o TOTP
+5.3 Credential stuffing
+5.4 Password spraying e limite por IP
+5.5 Sequestro de sessão
+5.6 Comparação antes × depois
+6 Achados
+6.1 Resumo dos achados
+6.2 Detalhamento
+6.3 Observação sem classificação de risco
+7 Trade-offs entre usabilidade e segurança
+8 Considerações finais
+Referências
+Apêndice A — Escala de severidade
+Apêndice B — Checklist de verificação (OWASP ASVS 4.0.3)
+Apêndice C — Evidências e reprodução
+
+## 1 Introdução
+
+### 1.1 Objetivo
+
+Verificar se o módulo de autenticação atende às entregas do Projeto 3 do Trabalho Prático 1. Medir, com testes reproduzíveis, quanto seus controles reduzem o sucesso de ataques de força bruta, credential stuffing e sequestro de sessão.
+
+### 1.2 Escopo
+
+| Dentro do escopo | Fora do escopo |
 | --- | --- |
-| Instituição | Universidade Tecnológica Federal do Paraná (UTFPR) |
-| Disciplina | SA28S — Segurança e Auditoria em Sistemas |
-| Professor | Erinaldo da Silva Pereira |
-| Integrantes | [preencher] |
-| Data | 25/11/2026 |
+| API em `api/src`: cadastro, ativação do TOTP, login, sessão, logout, perfil (CPF e avatar) e rotas auxiliares `/auth/encrypt` e `/auth/verify` | Interface em `web/src` (consultada apenas para descrever o fluxo, sem avaliação de segurança) |
+| Banco SQLite gerado pela API | Implantação em produção, HTTPS e proxy reverso |
+| | Ataques distribuídos de vários IPs e negação de serviço por carga |
 
-## Sumário executivo
+**Versões avaliadas:**
 
-A API exigiu o segundo fator para abrir sessões de contas com TOTP ativo, bloqueou tentativas consecutivas de senha e revogou o cookie no logout. A proteção depende, porém, do estado da conta e da sessão. O teste de cadastro incompleto mostrou que a posse da senha permitiu assumir a ativação do autenticador. O teste de sessão mostrou que uma cópia do cookie deu acesso ao perfil enquanto a sessão estava válida. Os resultados abaixo comparam a API com o servidor de referência construído para o laboratório. [Resumo da execução](../../evidencias/resumo-antes-depois.md)
+| Artefato | Localização |
+| --- | --- |
+| Código da aplicação | https://github.com/Matheus336/autenticacao, commit `3186942` (branch `main`) |
+| Testes, evidências e este relatório | Pull request https://github.com/Matheus336/autenticacao/pull/1 (branch `testes-seguranca`) |
 
-- **Força bruta de senha.** A referência abriu sessão na 25ª tentativa. A API respondeu com 5 recusas HTTP 401 e 21 bloqueios HTTP 429, inclusive para a senha correta.
-- **Reutilização de credenciais.** Entre 30 pares de e-mail e senha, os 10 válidos abriram 10 sessões na referência e nenhuma na API. A resposta da API confirmou as 10 senhas.
-- **Limite por IP.** Na API, a primeira série de falhas consecutivas recebeu bloqueio na 21ª tentativa. Em outra série, com autenticações válidas intercaladas, ocorreram 60 falhas sem bloqueio por IP.
-- **Adivinhação de sessão.** A referência reconheceu 13 identificadores entre 50 candidatos sequenciais. A API reconheceu 0 entre 200 candidatos aleatórios.
+### 1.3 Cronograma
 
-## Objetivo e escopo
+| Data | Atividade |
+| --- | --- |
+| 26/10/2026 | Publicação do código do módulo no repositório |
+| 23/11/2026 | Versão 1.0 do relatório (inspeção e verificações manuais) |
+| 24/11/2026 | Testes automatizados, coleta de evidências e revisão do relatório |
+| 25/11/2026 | Entrega |
 
-A avaliação verifica em que condições o módulo protege a entrada na conta e o acesso posterior ao perfil. A matriz adota as entregas do Projeto 3 como critério. “Parcial” indica uma lacuna no controle implementado ou em sua cobertura. [Enunciado do trabalho](../enunciado_tp1.txt)
+### 1.4 Limitações
 
-| Item do Projeto 3 | Status | Implementação ou verificação |
+- Os testes usaram HTTP em `127.0.0.1`, um único IP de origem e clientes programáticos. Não houve avaliação de HTTPS, proxies, ataques distribuídos nem do comportamento de cookies em navegadores reais. Nenhum script foi executado em navegador.
+- O cookie foi emitido sem `Secure`, porque a API só ativa esse atributo com `NODE_ENV=production`.
+- A expiração foi testada alterando o prazo no banco temporário, sem aguardar 8 horas. O replay de sessão partiu de uma cópia do cookie já em mãos; o furto do cookie não foi simulado.
+- O grupo não tinha versão anterior do sistema. O "antes" é um servidor de referência construído para a comparação (seção 3.2).
+- Os tempos de resposta valem para a máquina local e variam entre execuções.
+
+### 1.5 Aviso
+
+Esta avaliação retrata o código na data do relatório e não garante a ausência de outras vulnerabilidades. Todos os ataques foram executados em ambiente local, com contas fictícias.
+
+## 2 Sumário executivo
+
+O módulo cumpre a maior parte do que o Projeto 3 pede. As senhas são guardadas com Argon2id, um algoritmo feito para tornar lenta a quebra de senhas roubadas. O login exige um segundo fator: um código de 6 dígitos gerado por aplicativo autenticador no celular (TOTP). Tentativas repetidas são bloqueadas por 15 minutos. O cookie de sessão não pode ser lido por scripts e é invalidado no logout. Comparado a um sistema sem esses controles, o ganho é mensurável:
+
+| Ataque | Sem controles (antes) | Módulo do grupo (depois) |
 | --- | --- | --- |
-| Cadastro, login, hash e política de senhas | Parcial | Cadastro e verificação com Argon2id atendem ao requisito de hash. A política rejeitou uma senha curta, mas aceitou uma senha comum que satisfaz as regras de composição. [Armazenamento](../../evidencias/armazenamento.log) |
-| MFA por TOTP | Parcial | O login de conta ativada exige o código. A vinculação pendente e o reuso de um código já aceito comprometem o ciclo do fator. [Ativação pendente](../../evidencias/mfa-pendente.log) · [Reuso do código](../../evidencias/replay-totp.log) |
-| Proteção contra força bruta com limitação e bloqueio temporário | Parcial | O bloqueio funcionou por conta e por IP em séries de falhas consecutivas. O histórico agregado do IP foi perdido na série mista. [Bloqueio por conta](../../evidencias/forca-bruta.log) · [Contador por IP](../../evidencias/contorno-limite-ip.log) |
-| CAPTCHA, componente da proteção contra força bruta | Ausente | Os formulários e o fluxo de autenticação da API não apresentam nem validam um desafio. [Fluxo de login](../../web/src/hooks/loginFlow.ts) · [Serviço de autenticação](../../api/src/services/auth.service.ts) |
-| Sessões com cookies HttpOnly/Secure, expiração e rotação | Parcial | Há HttpOnly, prazo absoluto e substituição do identificador no login. Secure depende do ambiente. Durante a sessão faltam rotação periódica e expiração por inatividade. [Cookie](../../evidencias/cookie-atributos.log) · [Ciclo da sessão](../../evidencias/sequestro-sessao.log) |
-| Simulações de força bruta, credential stuffing e sequestro de sessão com evidências | Atendido | A suíte registrou recusas, bloqueios, emissão e reuso de cookies em contas fictícias. [Índice das evidências](../../evidencias/README.md) |
-| Relatório comparativo e discussão de usabilidade | Atendido | As seções de comparação e de trade-offs vinculam os resultados ao custo dos controles para quem usa o sistema. |
+| Adivinhar a senha com 26 senhas comuns | Senha descoberta na 25ª tentativa | Bloqueado após 5 falhas; a senha correta também recebeu bloqueio |
+| Testar 30 credenciais vazadas, 10 válidas | 10 contas invadidas | Nenhuma sessão aberta |
+| Adivinhar um identificador de sessão | 13 sessões alheias encontradas em 50 tentativas | Nenhum acerto em 200 tentativas |
+| Reusar o cookie após o logout da vítima | Acesso mantido | Acesso negado |
 
-## Metodologia e reprodução
+A auditoria registrou 12 achados: 2 de severidade alta, 8 média e 2 baixa. Os que devem ser corrigidos primeiro são:
 
-O OWASP ASVS 4.0.3 orientou a análise da autenticação (V2) e do gerenciamento de sessão (V3). A NIST SP 800-63B orientou a avaliação de senhas, vinculação de autenticadores e uso único do código. O OWASP WSTG orientou a seleção dos casos de teste. A cobertura se restringe aos controles da matriz. [ASVS 4.0.3](https://github.com/OWASP/ASVS/releases/tag/v4.0.3_release) · [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html) · [OWASP WSTG](https://wstg.owasp.org/v4.2/)
+1. **Tomada de conta antes da ativação do segundo fator (Alta).** Se o usuário se cadastra e não conclui a configuração do aplicativo autenticador, quem souber a senha recebe a chave do segundo fator e passa a controlá-lo. Comprovado por teste.
+2. **Endpoints de teste expostos sem login (Alta, estimada).** Duas rotas auxiliares de hash (`/auth/encrypt` e `/auth/verify`) respondem a qualquer pessoa. Podem ser usadas para sobrecarregar o servidor e deixar o login indisponível. O acesso foi comprovado; a sobrecarga foi estimada e não medida.
+3. **Contorno do limite por IP (Média).** Um login correto zera o contador de falhas do IP. Com isso, um atacante fez 60 tentativas erradas sem ser bloqueado e confirmou senhas válidas, ainda que sem entrar nas contas protegidas pelo segundo fator.
 
-O grupo não dispunha de uma versão anterior da aplicação. Para obter uma linha de base executável, construiu o servidor de referência denominado **antes**. Ele mantém os dados em memória, usa SHA-256 sem sal para senhas, aceita login sem TOTP e emite sessões sequenciais. **Depois** designa a API do projeto. A comparação mede o efeito conjunto das diferenças entre as implementações. [Servidor de referência](../../api/tests/antes/servidor-inseguro.ts) · [API avaliada](../../api/src/app.ts)
+O CAPTCHA, citado no enunciado, não foi implementado. A seção 7 discute essa escolha.
 
-A suíte automatizada de `bun test` inicia ambos os servidores em portas locais atribuídas pelo sistema, cria um banco SQLite temporário e limpa os contadores de falhas entre os casos. Os testes observam respostas HTTP, emissão de cookie, acesso ao perfil e, quando necessário, o estado do banco. Uma resposta HTTP 200 que solicita TOTP indica que a senha foi aceita. A criação de sessão é verificada pela emissão do cookie. Os logs usam contas fictícias, abreviam e-mails e tokens e omitem códigos e segredos completos. O ensaio de política de senha identifica os exemplos sintéticos testados. [Suíte](../../api/tests/seguranca.test.ts) · [Ambiente e registro de evidências](../../api/tests/apoio.ts)
+## 3 Metodologia
 
-Para reproduzir em uma cópia de trabalho local, com Bun instalado, executar a partir da raiz do projeto. A suíte recria os logs e o resumo em `evidencias/` dessa cópia.
+### 3.1 Referências de avaliação
 
-```sh
-cd api
-bun install --frozen-lockfile
-bun test tests/seguranca.test.ts
-```
+- **OWASP ASVS 4.0.3** (OWASP, 2021), capítulos V2 (autenticação) e V3 (gerenciamento de sessão): critérios de verificação, nível 2. O Apêndice B lista os requisitos verificados.
+- **NIST SP 800-63B-4** (NIST, 2025): diretrizes para senhas e autenticadores, usadas na avaliação da política de senha (seção 7).
+- **OWASP WSTG v4.2** (OWASP, 2020): seleção dos casos de teste e estrutura deste relatório.
+- **CVSS 3.1** (FIRST, 2019): severidade dos achados (Apêndice A).
 
-## Arquitetura
+### 3.2 Comparação antes × depois
+
+Como não existia uma versão anterior, o grupo construiu um servidor de referência (`api/tests/antes/servidor-inseguro.ts`). Ele tem a mesma interface da API e nenhum dos controles avaliados:
+
+- senha em SHA-256 sem sal;
+- nenhuma política de senha, MFA ou limite de tentativas;
+- identificador de sessão sequencial (1, 2, 3...), sem HttpOnly e sem expiração;
+- logout que não invalida a sessão no servidor.
+
+Força bruta na senha, credential stuffing, spraying, adivinhação de sessão e replay de cookie foram executados contra os dois servidores. Os casos que dependem de controles inexistentes na referência foram executados apenas na API. São eles: força bruta no TOTP, fixação de sessão, origem do logout, novo login e expiração. "Depois" designa a API do projeto, sem nenhuma alteração.
+
+### 3.3 Execução dos testes
+
+A suíte `api/tests/seguranca.test.ts` usa o executor `bun test`. Ela sobe os dois servidores em portas locais, cria um banco SQLite temporário e zera os contadores de tentativas entre os casos. Para cada caso, observa códigos HTTP, emissão de cookie, acesso ao perfil e, quando preciso, o conteúdo do banco. Os logs vão para `evidencias/`, com e-mails, tokens, senhas, códigos e segredos mascarados. O Apêndice C explica como reproduzir.
+
+## 4 Sistema avaliado e controles implementados
+
+### 4.1 Arquitetura
 
 | Componente | Responsabilidade |
 | --- | --- |
-| Interface web · React, TypeScript e Vite | Apresenta cadastro, login, QR para vincular o autenticador e painel de perfil. [Interface](../../web/src/App.tsx) · [Configuração TOTP](../../web/src/components/totp/TotpSetup.tsx) |
-| API · Bun e Elysia | Recebe as requisições, aplica validações e coordena autenticação, limitação de tentativas e sessões. [Aplicação](../../api/src/app.ts) · [Rotas](../../api/src/routes/auth.routes.ts) |
-| Persistência · SQLite | A tabela `users` reúne identidade, hash de senha, dados TOTP e perfil. As tabelas `sessions` e `auth_attempts` mantêm sessões e contadores de falhas. [Esquema](../../api/src/database/schema.ts) |
-| Configuração | Define a origem web permitida, o diretório de dados, os prazos de bloqueio e sessão e a condição para usar Secure. [Configuração da API](../../api/src/config.ts) |
+| Interface web (React, TypeScript, Vite) | Cadastro, login, QR Code para o autenticador e painel de perfil |
+| API (Bun 1.3.14, Elysia) | Validação, autenticação, limitação de tentativas e sessões (`api/src/routes`, `api/src/services`) |
+| Banco (SQLite) | Tabelas `users`, `sessions` e `auth_attempts` |
+| Configuração (`api/src/config.ts`) | `WEB_ORIGIN`, `DATA_DIRECTORY`, prazos de sessão e bloqueio, `NODE_ENV` para o atributo Secure |
 
-## Controles implementados
+### 4.2 Atendimento ao Projeto 3
 
-| Controle | Comportamento e alcance da evidência |
+| Entrega do Projeto 3 | Implementação | Situação |
+| --- | --- | --- |
+| Cadastro e login com hash bcrypt/Argon2 | Argon2id (BIRYUKOV et al., 2021) com m = 64 MiB, t = 2, p = 1, via `Bun.password.hash` | Atendido |
+| Política de senhas fortes | 8 a 128 caracteres com maiúscula, minúscula e dígito; aceita senhas comuns como "Senha123" | Parcial |
+| MFA via TOTP | RFC 6238 (M'RAIHI et al., 2011), HMAC-SHA1, 6 dígitos, período de 30 s, tolerância de ±1 período; exigido no login | Parcial (A-01, A-04) |
+| Rate limiting e bloqueio temporário | 5 falhas por e-mail ou 20 por IP em 15 min geram bloqueio de 15 min, com HTTP 429 e `Retry-After` | Parcial (A-02) |
+| CAPTCHA | Não implementado | Ausente |
+| Cookies HttpOnly/Secure e expiração | HttpOnly, SameSite=Lax e prazo de 8 h verificado também no servidor; Secure só com `NODE_ENV=production` | Parcial (A-07) |
+| Rotação de token | Novo token a cada login completo; o login revoga só o cookie enviado na própria requisição, e outras sessões da conta continuam válidas; sem renovação durante o uso | Parcial (A-10) |
+| Testes de força bruta, credential stuffing e sequestro de sessão | 14 testes automatizados com logs | Atendido |
+| Relatório antes/depois e trade-offs | Seções 5.6 e 7 | Atendido |
+
+## 5 Testes e resultados
+
+### 5.1 Força bruta contra a senha
+
+Dicionário de 26 senhas comuns contra uma conta, com a senha correta na 25ª posição.
+
+- **Antes:** a senha foi descoberta na tentativa 25.
+- **Depois:** 5 respostas 401 e, em seguida, 21 respostas 429 com `Retry-After: 900`. A senha correta também recebeu 429.
+- **Evidência:** `evidencias/forca-bruta.log`
+
+### 5.2 Força bruta contra o TOTP
+
+Senha correta conhecida e códigos TOTP errados. Executado apenas na API.
+
+- **Depois:** 5 respostas 401, seguidas de 429; o código correto, na 8ª tentativa, também recebeu 429. Com 5 tentativas a cada 15 minutos, 3 códigos aceitos por vez e 10⁶ combinações, a chance teórica de acerto em cada janela de 15 minutos é de cerca de 0,0015%.
+- **Evidência:** `evidencias/forca-bruta-totp.log`
+
+### 5.3 Credential stuffing
+
+Lista de 30 pares e-mail/senha para 10 contas, com 10 pares válidos (reuso de senha).
+
+- **Antes:** 10 sessões abertas.
+- **Depois:** nenhuma sessão. As 10 senhas corretas, porém, foram confirmadas pela resposta `requiresTotp`. Nenhuma resposta 429 ocorreu, porque cada senha correta zerou o contador do IP (A-02).
+- **Evidência:** `evidencias/credential-stuffing.log`
+
+### 5.4 Password spraying e limite por IP
+
+Uma senha errada contra 25 e-mails sem cadastro, a partir do mesmo IP.
+
+- **Antes:** 25 respostas 401, nenhum bloqueio.
+- **Depois:** 20 respostas 401 e bloqueio (429) a partir da 21ª.
+- **Contorno (apenas na API):** o atacante enviou a senha correta da própria conta a cada 19 tentativas, sem concluir o TOTP. Assim, 60 tentativas erradas passaram sem nenhum 429.
+- **Evidências:** `evidencias/limite-ip.log`, `evidencias/contorno-limite-ip.log`
+
+### 5.5 Sequestro de sessão
+
+| Ataque | Antes | Depois | Evidência |
+| --- | --- | --- | --- |
+| Adivinhar o identificador | 13 sessões válidas entre os identificadores 1 a 50 | Nenhum acerto em 200 tokens aleatórios | `adivinhacao-sessao.log` |
+| Proteção do cookie contra leitura por script (atributo HttpOnly no Set-Cookie) | Ausente | `HttpOnly; SameSite=Lax; Max-Age=28800` | `cookie-atributos.log` |
+| Reusar cópia do cookie durante a sessão | 200 | 200 (limitação de todo token portador) | `sequestro-sessao.log` |
+| Reusar a cópia após o logout | 200 | 401 | `sequestro-sessao.log` |
+| Novo login enviando o cookie anterior | não testado | 401 para o token anterior | `sequestro-sessao.log` |
+| Usar sessão expirada | sessões sem prazo | 401 | `sequestro-sessao.log` |
+| Fixação (identificador plantado antes do login) | não testado | ignorado; o valor plantado recebe 401 | `fixacao-csrf.log` |
+| Logout disparado de outra origem | não testado | 403 sem `Origin` e com origem externa | `fixacao-csrf.log` |
+
+### 5.6 Comparação antes × depois
+
+| Cenário | Antes | Depois |
+| --- | --- | --- |
+| Armazenamento da senha | SHA-256 sem sal, qualquer senha aceita | Argon2id; política de composição |
+| Força bruta na senha | Descoberta na 25ª tentativa | 5 × 401, depois 429 |
+| Credential stuffing | 10 sessões | 0 sessões; 10 senhas confirmadas |
+| Spraying de um IP | 25 × 401, sem bloqueio | Bloqueio na 21ª tentativa |
+| Adivinhação de sessão | 13 em 50 | 0 em 200 |
+| Replay durante a sessão | 200 | 200 |
+| Replay após logout | 200 | 401 |
+
+Fonte: `evidencias/resumo-antes-depois.md`, gerado pela suíte.
+
+## 6 Achados
+
+### 6.1 Resumo dos achados
+
+| ID | Achado | Severidade (CVSS 3.1) | Comprovação |
+| --- | --- | --- | --- |
+| A-01 | Tomada de conta com MFA pendente | Alta (7,4) | Teste |
+| A-03 | Rotas auxiliares de hash públicas | Alta (7,5, estimada) | Parcial: acesso por teste; impacto por inspeção |
+| A-04 | Código TOTP reutilizável | Média (6,8) | Teste |
+| A-05 | Origem não verificada no cadastro, login e ativação | Média (6,3) | Inspeção |
+| A-06 | Segredo TOTP em texto claro no banco | Média (6,0) | Teste |
+| A-07 | Cookie sem Secure fora de produção e cache de respostas sensíveis | Média (5,9) | Parcial: cookie por teste; cache por inspeção |
+| A-02 | Login correto zera o limite por IP | Média (5,3) | Teste |
+| A-08 | Enumeração de contas | Média (5,3) | Parcial: cadastro e login por teste; CPF por inspeção |
+| A-09 | Bloqueio da conta provocado por terceiros | Média (5,3) | Teste |
+| A-12 | Senha sem limite de tamanho no login | Média (5,3) | Inspeção |
+| A-10 | Sessão sem prazo de inatividade e sem renovação | Baixa (3,7) | Parcial: replay por teste; ausência de prazo por inspeção |
+| A-11 | Erros internos e metadados de imagem | Baixa (3,7) | Inspeção |
+
+### 6.2 Detalhamento
+
+Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao código avaliado.
+
+#### A-01 Tomada de conta com MFA pendente
+
+| Campo | Conteúdo |
 | --- | --- |
-| Senha e hash | O cadastro exige de 8 a 128 caracteres, com maiúscula, minúscula e dígito. O serviço chama `Bun.password.hash` e verifica a senha no login. O hash lido do SQLite identifica **Argon2id, m = 64 MiB, t = 2, p = 1**. O cadastro rejeitou a amostra curta (400) e aceitou a amostra comum (201). [Validador](../../api/src/validators/auth.validators.ts) · [Serviço](../../api/src/services/auth.service.ts) · [Log](../../evidencias/armazenamento.log) |
-| TOTP | O cadastro gera um segredo aleatório e uma URI para o autenticador. A validação aceita o intervalo de tempo atual e os adjacentes para acomodar diferenças de relógio. Com o fator ativo, a senha isolada conduz à solicitação do código. O teste com credenciais reutilizadas verificou a ausência de cookie nessa etapa. [Algoritmo](../../api/src/services/totp.service.ts) · [Fluxo de autenticação](../../api/src/services/auth.service.ts) · [Log](../../evidencias/credential-stuffing.log) |
-| Limitação de tentativas | A API registra falhas por ação e por e-mail e, quando disponível, por IP. Os limites são 5 falhas por e-mail e 20 por IP, com janela e bloqueio de 15 minutos. O tratador devolve 429 e informa o prazo em `Retry-After`. [Contadores](../../api/src/services/auth-attempt.service.ts) · [Tratador HTTP](../../api/src/plugins/error-handler.ts) · [Por conta](../../evidencias/forca-bruta.log) · [Por IP](../../evidencias/limite-ip.log) |
-| Sessão e cookie | O servidor gera um token aleatório de 256 bits e guarda seu hash SHA-256. O cookie `sid` tem `Path=/`, `HttpOnly`, `SameSite=Lax` e `Max-Age=28800`. O servidor também verifica a expiração. O logout revoga a sessão apresentada. Um novo login completo revoga o token recebido nessa requisição. [Sessão](../../api/src/services/session.service.ts) · [Cookie](../../api/src/utils/session-cookie.ts) · [Atributos observados](../../evidencias/cookie-atributos.log) · [Revogação](../../evidencias/sequestro-sessao.log) |
-| Perfil e origem | A API exige sessão para ler o perfil e para gravar CPF ou avatar. As gravações e o logout conferem `Origin` contra `WEB_ORIGIN`. O teste demonstrou a negação de acesso ao perfil com sessão revogada e a rejeição do logout de origem indevida. A autorização das alterações de CPF e avatar foi verificada por inspeção. [Rotas de perfil e logout](../../api/src/routes/auth.routes.ts) · [Perfil após revogação](../../evidencias/sequestro-sessao.log) · [Origem no logout](../../evidencias/fixacao-csrf.log) |
+| Severidade | Alta, 7,4 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N` |
+| Local | `api/src/services/auth.service.ts` (`loginUser`) |
+| Descrição | Enquanto o usuário não confirma o TOTP, `POST /auth/login` sem código devolve o segredo pendente a quem informar a senha correta. Quem enviar um código gerado com esse segredo ativa o MFA e recebe uma sessão. |
+| Cenário | O atacante obtém a senha de uma conta recém-criada, por vazamento ou credential stuffing. Em seguida, ativa o TOTP no próprio celular e passa a controlar o segundo fator da vítima. |
+| Evidência | `evidencias/mfa-pendente.log`: login sem código → 200 com o segredo; código do atacante → 200 com sessão. |
+| Correção | Entregar o segredo uma única vez, no cadastro, e expirar a ativação pendente após poucos minutos; na retomada, exigir confirmação por um canal do titular, como o e-mail. |
+| Referências | CWE-287 (Improper Authentication) |
 
-## Testes e evidências
+#### A-02 Login correto zera o limite por IP
 
-### Força bruta contra a senha
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Média, 5,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N` |
+| Local | `api/src/services/auth-attempt.service.ts` (`clearAuthFailures`), `api/src/services/auth.service.ts` |
+| Descrição | Após uma senha correta, `clearAuthFailures` apaga os contadores do e-mail e também do IP. A resposta `requiresTotp` revela quando a senha está correta, mesmo sem abrir sessão. Além disso, login (`login-password`) e ativação (`totp-activation-password`) têm contadores separados, o que permite 10 tentativas de senha por conta em vez de 5. |
+| Cenário | O atacante envia a senha correta da própria conta a cada 19 tentativas contra outras contas; o IP nunca chega a 20 falhas. A confidencialidade afetada é a confirmação de senhas, classificada como baixa porque o segundo fator impediu a abertura de sessões. Combinado com A-01, o impacto sobe para o de A-01. |
+| Evidência | `evidencias/contorno-limite-ip.log` (60 falhas, nenhum 429); `evidencias/credential-stuffing.log` (10 senhas confirmadas, 0 sessões) |
+| Correção | Limpar apenas o contador do e-mail após sucesso e deixar o do IP expirar com a janela; unificar os contadores de senha do login e da ativação. |
+| Referências | CWE-307 (Improper Restriction of Excessive Authentication Attempts); ASVS 2.2.1 |
 
-O ensaio comparou um dicionário de 26 senhas contra uma conta fictícia em cada servidor. **Antes**, a tentativa 25 abriu sessão. **Depois**, as primeiras 5 falhas receberam 401 e as 21 tentativas seguintes receberam 429 com `Retry-After` de 900 s. A senha correta, na mesma posição, encontrou a conta bloqueada. [Log de força bruta](../../evidencias/forca-bruta.log)
+#### A-03 Rotas auxiliares de hash públicas
 
-### Força bruta contra o TOTP
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Alta, 7,5 (estimada) — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H` |
+| Local | `api/src/routes/password.routes.ts`, registrada em `api/src/app.ts` |
+| Descrição | `POST /auth/encrypt` gera hash bcrypt com custo 4 e `POST /auth/verify` verifica qualquer hash enviado pelo cliente, ambas sem autenticação e sem limite de tentativas. |
+| Cenário | Um cliente anônimo envia a `/auth/verify` hashes com parâmetros de custo elevados e ocupa a CPU do servidor, atrasando ou impedindo o login dos usuários. O `A:H` pressupõe essa sobrecarga, que não foi medida; se ela não se confirmar, o achado cai para Média. |
+| Evidência | `evidencias/rotas-auxiliares.log`: as duas rotas responderam 200 sem sessão; hash com prefixo `$2b$04$`. |
+| Correção | Remover `passwordRoutes` da aplicação. |
+| Referências | CWE-400 (Uncontrolled Resource Consumption) |
 
-O caso avaliou o bloqueio do segundo fator quando a senha já era conhecida. **Antes**, a referência autenticava somente com senha e o ensaio de códigos era inaplicável. **Depois**, houve 5 respostas 401 para códigos incorretos. As tentativas 6 e 7 receberam 429 e a tentativa 8, com código correto, também recebeu 429. [Log de força bruta no TOTP](../../evidencias/forca-bruta-totp.log)
+#### A-04 Código TOTP reutilizável
 
-### Credential stuffing com credenciais reutilizadas
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Média, 6,8 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:N` |
+| Local | `api/src/services/totp.service.ts` (`verifyTotp`) |
+| Descrição | O verificador não registra o último período aceito. Com a tolerância de ±1 período de 30 s, o mesmo código é aceito em vários logins por até 90 s. |
+| Cenário | Um atacante que já conhece a senha captura o código digitado pela vítima (phishing em tempo real ou observação da tela) e o reutiliza para abrir uma sessão paralela. |
+| Evidência | `evidencias/replay-totp.log`: o mesmo código recebeu 200 em dois logins. O acesso ao perfil com as duas sessões não foi verificado. |
+| Correção | Guardar por usuário o último contador aceito e rejeitar contador igual ou menor, com atualização atômica. |
+| Referências | CWE-294 (Authentication Bypass by Capture-replay); ASVS 2.8.4 |
 
-A suíte avaliou 30 pares sintéticos de e-mail e senha, dos quais 10 eram válidos, e contou as sessões emitidas. **Antes**, os 10 pares válidos abriram sessão. **Depois**, nenhum abriu sessão, mas as 10 respostas com `requiresTotp` distinguiram as senhas corretas. Nenhuma resposta 429 ocorreu nessa série, porque cada senha correta zerou o contador do IP. [Log de credential stuffing](../../evidencias/credential-stuffing.log) · [Resumo](../../evidencias/resumo-antes-depois.md)
+#### A-05 Origem não verificada no cadastro, login e ativação
 
-### Password spraying e limite por IP
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Média, 6,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:L` |
+| Local | `api/src/routes/auth.routes.ts` |
+| Descrição | Logout, CPF e avatar conferem o cabeçalho `Origin`; cadastro, login e ativação do TOTP não. |
+| Cenário | Uma página maliciosa envia um formulário de login com as credenciais do atacante e deixa a vítima autenticada na conta dele (login CSRF). A mesma técnica pode provocar o bloqueio da conta da vítima. A viabilidade depende do navegador e não foi testada. |
+| Evidência | Inspeção. O teste confirmou apenas a proteção do logout (`evidencias/fixacao-csrf.log`). |
+| Correção | Aplicar a verificação de origem a todas as rotas que alteram estado e exigir `Content-Type: application/json`. |
+| Referências | CWE-352 (Cross-Site Request Forgery) |
 
-O teste distribuiu uma senha inválida entre 25 endereços de e-mail fictícios inexistentes a partir de um IP. **Antes**, as 25 respostas foram 401. **Depois**, houve 20 respostas 401 e as demais receberam 429 a partir da 21ª tentativa. Um ensaio adicional da API misturou resultados de autenticação no mesmo IP. Nessa condição, houve 60 falhas e nenhum 429. A diferença revela que o bloqueio depende da conservação do histórico de falhas do endereço. [Série de falhas](../../evidencias/limite-ip.log) · [Série com resultados mistos](../../evidencias/contorno-limite-ip.log)
+#### A-06 Segredo TOTP em texto claro no banco
 
-### Sequestro de sessão por adivinhação
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Média, 6,0 — `CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:N` |
+| Local | `api/src/database/schema.ts`, `api/src/repositories/user.repository.ts` |
+| Descrição | `totp_secret` e `pending_totp_secret` são gravados em Base32 sem cifra. |
+| Cenário | Quem obtiver uma cópia do arquivo SQLite ou de um backup gera códigos válidos para todas as contas. |
+| Evidência | `evidencias/armazenamento.log`: segredo de 32 caracteres Base32 lido diretamente da tabela. |
+| Correção | Cifrar os segredos com AES-256-GCM, com chave fora do banco (variável de ambiente ou cofre). |
+| Referências | CWE-312 (Cleartext Storage of Sensitive Information); ASVS 2.8.2 |
 
-A suíte verificou quantos identificadores candidatos davam acesso ao perfil. **Antes**, 13 dos 50 candidatos sequenciais corresponderam a sessões válidas. **Depois**, nenhum dos 200 candidatos aleatórios de 256 bits deu acesso. Os conjuntos de candidatos diferem porque cada servidor usa um formato de identificador distinto. [Log de adivinhação](../../evidencias/adivinhacao-sessao.log)
+#### A-07 Cookie sem Secure fora de produção e cache de respostas sensíveis
 
-### Sequestro de sessão por replay de cookie válido
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Média, 5,9 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N` |
+| Local | `api/src/config.ts`, `api/src/utils/session-cookie.ts`, `api/src/routes/auth.routes.ts` |
+| Descrição | `Secure` só é ativado com `NODE_ENV=production`. Apenas `GET /auth/avatar` envia `Cache-Control: private, no-store`; respostas com dados do perfil e com o segredo TOTP não. |
+| Cenário | Uma implantação sem `NODE_ENV=production` envia o cookie também por HTTP, onde pode ser interceptado. |
+| Evidência | `evidencias/cookie-atributos.log` (cookie emitido sem Secure no ambiente local); cache por inspeção. |
+| Correção | Ativar Secure por padrão, desativando apenas em desenvolvimento; usar HSTS; aplicar `Cache-Control: no-store` às respostas de `/auth/*`. |
+| Referências | CWE-614 (Sensitive Cookie in HTTPS Session Without 'Secure' Attribute); CWE-525; ASVS 3.4.1 |
 
-O teste representou a posse de uma cópia do cookie por outro cliente e observou a resposta da consulta ao perfil. **Antes e depois**, o perfil retornou 200 enquanto a sessão estava ativa. O controle de acesso aceita a posse do token como prova da sessão. O ensaio começou com uma cópia disponível e não mediu a obtenção do cookie. [Log de replay](../../evidencias/sequestro-sessao.log)
+#### A-08 Enumeração de contas
 
-### Logout e substituição da sessão no login
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Média, 5,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N` |
+| Local | `api/src/services/auth.service.ts`, `api/src/services/profile.service.ts` |
+| Descrição | O cadastro responde 409 para e-mail ou RA já usados. No login, quando o e-mail não existe, o Argon2id não é executado e a resposta sai muito mais rápido. A gravação de CPF também informa quando o documento pertence a outra conta. |
+| Cenário | O atacante descobre quais e-mails têm conta antes de tentar senhas. |
+| Evidência | `evidencias/enumeracao.log`: 409 no cadastro e tempos de resposta no login, em 8 medições por condição, com valor central de 65,4 ms para e-mail existente e 0,4 ms para inexistente. A suíte registra o 5º dos 8 valores ordenados. A resposta do CPF foi verificada por inspeção. |
+| Correção | Executar a verificação contra um hash fictício quando o usuário não existe (OWASP, [2026]a); responder de forma genérica no cadastro; limitar tentativas de cadastro e de gravação de CPF. |
+| Referências | CWE-204 (Observable Response Discrepancy); CWE-208 (Observable Timing Discrepancy) |
 
-A suíte comparou o acesso com uma cópia do cookie após o encerramento da sessão. **Antes**, o perfil ainda retornou 200 após o logout. **Depois**, o logout retornou 200 e a consulta posterior com a cópia recebeu 401. No mesmo teste, um novo login com o cookie vigente retornou 200 e o identificador substituído passou a receber 401. A substituição no novo login foi medida somente na API. [Log do ciclo de sessão](../../evidencias/sequestro-sessao.log)
+#### A-09 Bloqueio da conta provocado por terceiros
 
-### Fixação de sessão e origem do logout
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Média, 5,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L` |
+| Local | `api/src/services/auth-attempt.service.ts` |
+| Descrição | Cinco senhas erradas bloqueiam a conta por 15 minutos, inclusive para o dono, que recebe 429 mesmo com a senha correta. |
+| Cenário | Um terceiro mantém a conta da vítima bloqueada repetindo 5 falhas a cada 15 minutos. |
+| Evidência | `evidencias/forca-bruta.log`: a senha correta recebeu 429 durante o bloqueio. |
+| Correção | Atraso progressivo em vez de bloqueio fixo e CAPTCHA após algumas falhas. |
+| Referências | CWE-645 (Overly Restrictive Account Lockout Mechanism) |
 
-O teste verificou se o login preservava um identificador previamente escolhido pelo cliente. **Antes**, a suíte não mediu fixação nem origem do logout. **Depois**, o servidor emitiu outro identificador e o anterior recebeu 401. O logout sem origem e o logout de origem externa receberam 403. A sessão legítima permaneceu utilizável e o perfil retornou 200. [Log de fixação e origem](../../evidencias/fixacao-csrf.log)
+#### A-10 Sessão sem prazo de inatividade e sem renovação
 
-### Expiração de sessão
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Baixa, 3,7 — `CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:L/I:L/A:N` |
+| Local | `api/src/services/session.service.ts` |
+| Descrição | A sessão tem prazo absoluto de 8 h, dentro das 12 h que o ASVS 3.3.2 aceita no nível 2. Falta o limite de 30 minutos de inatividade que o mesmo requisito exige nesse nível. À parte, o token não é renovado durante o uso e não há opção de encerrar todas as sessões da conta. |
+| Cenário | Um cookie copiado em computador compartilhado continua válido por até 8 h, mesmo sem uso. |
+| Evidência | `evidencias/sequestro-sessao.log` mostra o replay aceito enquanto a sessão vale; a ausência de prazo de inatividade foi verificada por inspeção. |
+| Correção | Prazo de inatividade de 30 min, renovação do token em intervalos ou ações sensíveis e revogação de todas as sessões do usuário (OWASP, [2026]b). |
+| Referências | CWE-613 (Insufficient Session Expiration); ASVS 3.3.2 |
 
-O ensaio verificou se o prazo também era aplicado no servidor. **Antes**, a referência mantinha sessões em memória sem prazo, conforme o código. Não há medição de expiração nessa implementação. **Depois**, o teste colocou `expires_at` no passado no banco temporário e obteve 401 ao consultar o perfil. O cookie anunciou 28 800 s de validade. A suíte verificou a decisão de expiração sem aguardar 8 h. [Referência](../../api/tests/antes/servidor-inseguro.ts) · [Prazo do cookie](../../evidencias/cookie-atributos.log) · [Expiração no servidor](../../evidencias/sequestro-sessao.log)
+#### A-11 Erros internos e metadados de imagem
 
-## Comparação antes e depois
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Baixa, 3,7 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N` |
+| Local | `api/src/plugins/error-handler.ts`, rota `POST /auth/avatar` em `api/src/routes/auth.routes.ts` |
+| Descrição | O tratador de erros só formata `HttpError`; outros erros ficam com a resposta padrão do framework, que pode expor detalhes internos. O avatar é guardado com os bytes originais, inclusive metadados EXIF, que podem conter localização. As duas falhas expõem informação pouco sensível, por isso compartilham o vetor. |
+| Evidência | Inspeção. |
+| Correção | Resposta genérica 500 para erros inesperados e recodificação da imagem no servidor. |
+| Referências | CWE-209 (Generation of Error Message Containing Sensitive Information) |
 
-Síntese dos cenários do [resumo gerado pela suíte](../../evidencias/resumo-antes-depois.md).
+#### A-12 Senha sem limite de tamanho no login
 
-| Cenário | Antes · referência | Depois · API do projeto |
+| Campo | Conteúdo |
+| --- | --- |
+| Severidade | Média, 5,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L` |
+| Local | `api/src/validators/auth.validators.ts` (`parseCredentials`) |
+| Descrição | O cadastro limita a senha a 128 caracteres, mas o login e a ativação aceitam qualquer tamanho até o limite global de 2,2 MB do corpo, e a senha segue para o Argon2id. |
+| Cenário | Requisições com senhas muito longas aumentam o custo de processamento de cada tentativa. Não foi medido. |
+| Evidência | Inspeção. |
+| Correção | Rejeitar senhas acima de 128 caracteres também no login e na ativação. |
+| Referências | CWE-400 (Uncontrolled Resource Consumption) |
+
+### 6.3 Observação sem classificação de risco
+
+A conexão com o SQLite (`api/src/database/connection.ts`) não executa `PRAGMA foreign_keys = ON`. Por isso, o `ON DELETE CASCADE` declarado em `sessions` não tem efeito, e a exclusão de um usuário deixaria sessões órfãs. Hoje a API não exclui usuários, então não há impacto de segurança observável.
+
+## 7 Trade-offs entre usabilidade e segurança
+
+| Decisão | Benefício | Custo ou risco |
 | --- | --- | --- |
-| Força bruta de senha | Acerto na 25ª tentativa | 5 × 401 e 21 × 429. A senha correta recebeu 429, com espera indicada de 900 s. |
-| Força bruta no TOTP | A senha bastava | 5 × 401, seguidos de 429. Para 5 tentativas em 15 min e um espaço de 10⁶ códigos, o resumo estima aproximadamente 0,0015% de chance de acerto considerando os intervalos aceitos. A porcentagem é teórica. |
-| Credential stuffing | 10 sessões em 30 pares | 0 sessões, 10 senhas confirmadas e 0 bloqueios por IP. |
-| Spraying de um IP | 25 × 401 e nenhum 429 | 20 × 401 e 429 a partir da 21ª tentativa. |
-| Persistência do limite por IP | Sem limite | Na série com 3 autenticações de senha bem-sucedidas, 60 falhas receberam 401 e nenhuma recebeu 429. |
-| Atributos do cookie | Identificador numérico, apenas `Path=/`, sem prazo explícito | Token de 256 bits, HttpOnly, SameSite=Lax e Max-Age de 28 800 s. Secure depende do modo de produção. |
-| Adivinhação de sessão | 13 identificadores válidos entre 50 candidatos | 0 válidos entre 200 candidatos aleatórios. |
-| Replay de cookie | 200 durante a sessão e após o logout | 200 durante a sessão. A cópia recebeu 401 após logout, substituição no login ou expiração. |
-| Fixação e origem do logout | Sem ensaio correspondente | Identificador prévio rejeitado com 401. Origem ausente ou externa recebeu 403 no logout. |
-| Armazenamento e política de senha | SHA-256 sem sal e aceitação de qualquer senha não vazia | Argon2id com 64 MiB, t = 2 e p = 1. Política de 8 a 128 caracteres com maiúscula, minúscula e dígito. A amostra comum foi aceita. |
+| Política com maiúscula, minúscula e dígito | Segurança: rejeita senhas curtas e triviais | Usabilidade: atrapalha frases-senha. Segurança: ainda aceita "Senha123". O ASVS 2.1.9 e o NIST SP 800-63B-4 desaconselham regras de composição; o ASVS 2.1.1 pede no mínimo 12 caracteres e o 2.1.7, bloqueio de senhas vazadas. |
+| Bloqueio de 15 min após 5 falhas | Segurança: interrompe força bruta | Usabilidade: o dono da conta também fica bloqueado. Segurança: um terceiro pode provocar o bloqueio de propósito (A-09). |
+| CAPTCHA não implementado | Usabilidade: fluxo sem atrito e acessível | Segurança: menos defesa contra automação; item do enunciado em aberto. Um CAPTCHA exibido só após algumas falhas teria baixo custo de uso. |
+| TOTP obrigatório | Segurança: senha vazada não basta para entrar | Usabilidade: exige celular com autenticador; sem códigos de recuperação, perder o aparelho bloqueia o acesso. |
+| Sessão de 8 h sem prazo de inatividade | Usabilidade: menos logins durante o dia | Segurança: um cookie copiado vale por mais tempo (A-10). |
 
-## Achados e recomendações
+## 8 Considerações finais
 
-As severidades e os vetores-base CVSS 3.1 adotam os cenários de impacto da revisão técnica. **Comprovado por teste** qualifica o comportamento registrado no log citado. **Identificado por inspeção** indica que a conclusão deriva do código. Em achados com ambas as fontes, o texto delimita o alcance de cada uma. [Especificação do CVSS 3.1](https://www.first.org/cvss/v3.1/specification-document)
+O módulo atende ao núcleo do Projeto 3: Argon2id, TOTP, limitação de tentativas e sessões com cookie HttpOnly. Os testes mostram ganho claro sobre um sistema sem esses controles. Em contas com TOTP ativo, credenciais vazadas não abriram nenhuma sessão. Nenhuma de 200 tentativas de adivinhar um token de sessão acertou. O logout invalidou as cópias do cookie.
 
-### Vinculação do TOTP em cadastro pendente
+Os testes também mostram lacunas exploráveis. A ordem de correção recomendada é:
 
-**Alta · Comprovado por teste** · `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N`
+1. Proteger a ativação pendente do TOTP (A-01).
+2. Remover as rotas auxiliares de hash (A-03).
+3. Preservar o contador do IP e unificar os contadores de senha (A-02).
+4. Impedir o reuso do código TOTP (A-04).
+5. Cifrar os segredos TOTP (A-06).
 
-Em uma conta cuja ativação ficou pendente, o conhecimento da senha permitiu obter o segredo de configuração, concluir a vinculação e receber uma sessão (200). Quem controla o autenticador passa a gerar códigos para a conta. Recomenda-se vincular a configuração a uma transação de cadastro com prazo curto, exigir prova independente de titularidade na retomada e invalidar o segredo pendente ao reiniciar a vinculação. [Serviço de autenticação](../../api/src/services/auth.service.ts) · [Log de ativação pendente](../../evidencias/mfa-pendente.log)
-
-### Perda do histórico de falhas por IP
-
-**Alta · Comprovado por teste** · `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N`
-
-Na série mista, a API aceitou processar 60 falhas sem emitir 429. O serviço limpa o histórico do IP ao validar a senha, comprometendo o limite agregado entre contas. A resposta de segundo fator também confirmou senhas válidas no ensaio de credenciais reutilizadas. Por inspeção, login e ativação mantêm contadores de senha separados. Recomenda-se preservar as falhas do IP até o término da janela e aplicar um orçamento comum à verificação da mesma credencial. [Contadores](../../api/src/services/auth-attempt.service.ts) · [Fluxo](../../api/src/services/auth.service.ts) · [Log de tentativas](../../evidencias/contorno-limite-ip.log) · [Log de credenciais](../../evidencias/credential-stuffing.log)
-
-### Rotas auxiliares de hash expostas
-
-**Alta · Comprovado por teste quanto ao acesso anônimo** · `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H`
-
-As rotas auxiliares de geração e verificação de hash retornaram 200 sem sessão. O hash gerado nessa interface usou bcrypt com custo 4. O cadastro usa Argon2id. Por inspeção, a verificação pública aceita um hash fornecido pelo cliente, o que expõe recursos de processamento a trabalho sem limite específico por rota. O impacto de indisponibilidade considerado no vetor não foi medido. Recomenda-se remover as rotas auxiliares da API publicada. [Registro das rotas](../../api/src/app.ts) · [Implementação](../../api/src/routes/password.routes.ts) · [Log de acesso](../../evidencias/rotas-auxiliares.log)
-
-### Reutilização de código TOTP
-
-**Média · Comprovado por teste** · `CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:N`
-
-O mesmo código recebeu 200 em duas autenticações com a senha correta dentro de sua validade. O verificador compara o valor com os intervalos aceitos e não registra o intervalo consumido. Uma senha conhecida e um código já utilizado ainda válido podem autorizar outra sessão. Recomenda-se registrar por conta o intervalo aceito e impedir seu segundo consumo por meio de atualização atômica. [Verificador TOTP](../../api/src/services/totp.service.ts) · [Log de reutilização](../../evidencias/replay-totp.log)
-
-### Segredo do autenticador legível no SQLite
-
-**Média · Comprovado por teste para o segredo ativo** · `CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:N`
-
-A leitura do registro de teste encontrou o segredo ativo em Base32, com 32 caracteres. Por inspeção, o segredo pendente também é gravado diretamente. A exposição de uma cópia do banco comprometeria a independência do segundo fator, pois permitiria reproduzir os códigos fora do dispositivo cadastrado. Recomenda-se criptografar os segredos ativos e pendentes com criptografia autenticada e manter a chave fora do banco e de seus backups. [Repositório de usuários](../../api/src/repositories/user.repository.ts) · [Log de armazenamento](../../evidencias/armazenamento.log)
-
-### Enumeração de identidades
-
-**Média · Comprovado por teste para o e-mail** · `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N`
-
-O cadastro com e-mail já usado retornou 409. No login com senha incorreta, em 8 medições por condição, o teste registrou medianas de 65,4 ms para e-mail existente e 0,4 ms para inexistente. A consulta sem usuário pula a verificação do hash. A diferença pode revelar a presença de um cadastro. A análise do código também identificou que a duplicidade de RA também produz conflito, e a gravação de CPF informa ao usuário autenticado quando o documento já pertence a outra conta. Recomenda-se uniformizar o custo da verificação de senha em caso de usuário inexistente, reduzir a informação de duplicidade nas respostas e limitar as tentativas de cadastro e de gravação de documento. [Autenticação](../../api/src/services/auth.service.ts) · [Perfil](../../api/src/services/profile.service.ts) · [Medições locais](../../evidencias/enumeracao.log)
-
-### Validação de origem nos fluxos de entrada
-
-**Média · Identificado por inspeção** · `CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:L`
-
-Cadastro, login e ativação do TOTP carecem da verificação explícita de origem aplicada às gravações do perfil. Em um navegador que permita o envio e aceite a resposta correspondente, uma requisição induzida por outro site pode alterar o contexto de autenticação da vítima. A suíte comprovou a rejeição de origem indevida no logout. A viabilidade desse cenário nos fluxos de entrada requer validação em navegador. Recomenda-se aplicar a política de origem às operações web que alteram estado e restringir os tipos de conteúdo ao formato previsto por rota. [Rotas](../../api/src/routes/auth.routes.ts) · [Configuração de CORS](../../api/src/app.ts) · [Ensaio específico do logout](../../evidencias/fixacao-csrf.log)
-
-### Disponibilidade do login e bloqueio da conta
-
-**Média · Identificado por inspeção quanto ao risco de indisponibilidade** · `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L`
-
-O cadastro impõe um comprimento máximo à senha. O login e a ativação recebem o texto da credencial sem aplicar esse limite de campo antes da verificação; o único teto é o limite global de 2,2 MB do corpo da requisição. Também há risco de negar temporariamente o acesso legítimo de uma conta por falhas de terceiros. O log comprova que a senha correta recebeu 429 durante o bloqueio. O laboratório não mediu saturação de recursos nem bloqueio prolongado. Recomenda-se limitar a entrada antes do hash e aplicar atrasos progressivos com um meio de recuperação que confirme a titularidade. [Validação de credenciais](../../api/src/validators/auth.validators.ts) · [Controle de tentativas](../../api/src/services/auth-attempt.service.ts) · [Log de bloqueio](../../evidencias/forca-bruta.log)
-
-### Transporte do cookie e cache de dados sensíveis
-
-**Média · Identificado por inspeção para o cenário de implantação** · `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N`
-
-A flag Secure depende de `NODE_ENV=production`. Uma implantação acessível por HTTP e configurada fora desse modo pode expor o cookie em trânsito. O log comprova a emissão local do cookie sem Secure. Por inspeção, apenas `GET /auth/avatar` envia `Cache-Control: private, no-store`; as respostas com dados de perfil ou de configuração do autenticador não têm essa política. Recomenda-se exigir HTTPS e Secure na implantação, verificar HSTS na terminação TLS e aplicar a política de cache às respostas sensíveis. [Configuração](../../api/src/config.ts) · [Rotas](../../api/src/routes/auth.routes.ts) · [Cookie observado](../../evidencias/cookie-atributos.log)
-
-### Sessão sem rotação periódica e sem prazo de inatividade
-
-**Baixa · Identificado por inspeção** · `CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:L/I:L/A:N`
-
-O serviço verifica o prazo absoluto de 8 h. A sessão não registra a última atividade nem troca o token periodicamente. Uma cópia pode conservar o acesso até a expiração ou a revogação da sessão apresentada. O teste comprovou que o replay imediato recebeu 200 e que a cópia perdeu acesso após a revogação. Recomenda-se adotar prazo de inatividade, renovar o token em sessões prolongadas e permitir a revogação de todas as sessões da conta. [Serviço](../../api/src/services/session.service.ts) · [Esquema](../../api/src/database/schema.ts) · [Log de replay e revogação](../../evidencias/sequestro-sessao.log)
-
-### Exposição potencial de detalhes internos e metadados de imagem
-
-**Baixa · Identificado por inspeção** · `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N`
-
-O tratador personaliza apenas erros da classe `HttpError`. O conteúdo da resposta a falhas inesperadas fica a cargo do framework. O avatar é armazenado com os bytes recebidos após validação do tipo e da assinatura, o que pode preservar metadados da imagem. Recomenda-se padronizar a resposta pública a erros inesperados e recodificar imagens para remover metadados. A suíte não registrou divulgação de detalhes nem exposição de metadados. Como observação de integridade à parte, o esquema declara exclusão em cascata de sessões, mas a inicialização não confirma a ativação de chaves estrangeiras. Convém verificar a configuração efetiva da conexão antes de depender da cascata. [Tratador](../../api/src/plugins/error-handler.ts) · [Avatar](../../api/src/routes/auth.routes.ts) · [Conexão](../../api/src/database/connection.ts) · [Esquema](../../api/src/database/schema.ts)
-
-## Trade-offs de usabilidade e segurança
-
-| Decisão | Benefício | Custo para o usuário e implicação de segurança |
-| --- | --- | --- |
-| Composição da senha | Rejeita entradas curtas e sem as classes exigidas. | Dificulta algumas frases-senha e aceita padrões previsíveis. Uma lista de senhas comuns ou comprometidas atuaria sobre a lacuna observada. |
-| Bloqueio temporário | Contém séries de falhas por conta ou origem. | Um terceiro pode provocar negação de serviço (DoS) à conta. O usuário legítimo também precisa aguardar, mesmo com a credencial correta. |
-| CAPTCHA ausente | O fluxo atual dispensa um desafio visual ou cognitivo e a integração de outro serviço. | Essa escolha reduz o atrito e favorece a acessibilidade, mas deixa descoberto um item do enunciado. Um desafio adaptativo com alternativa acessível teria menor custo de uso do que sua imposição em todo login. |
-| TOTP e recuperação | A senha reutilizada sozinha não abriu sessão nas contas já ativadas. | O acesso depende do autenticador. O projeto não oferece códigos de recuperação. A perda do dispositivo exige um processo de recuperação que preserve a prova de titularidade. |
-| Sessão de 8 h sem rotação periódica | Reduz interrupções por nova autenticação durante o uso. | Um cookie copiado pode continuar válido mesmo sem atividade da conta. Uma expiração por inatividade reduz esse intervalo, ao custo de novo login após uma pausa. |
-
-## Limitações do trabalho
-
-- A suíte usou HTTP em localhost, um único IP de origem e clientes programáticos. A avaliação não abrangeu HTTPS, terminação TLS, proxies, ataques distribuídos nem políticas de cookies de navegadores reais.
-- A emissão local ocorreu sem Secure. A condição de produção foi identificada no código. As medianas de tempo descrevem a execução local, sem a variabilidade de uma rede externa.
-- O banco era temporário. O ensaio de expiração alterou o prazo no banco e o de replay entregou uma cópia do cookie ao cliente de teste. Não houve observação da passagem integral das 8 h nem de furto de cookie em trânsito.
-- A referência foi construída para a comparação. Fixação, origem do logout e expiração não tiveram medição equivalente nela. Possíveis impactos de carga, comportamentos de navegador e exposição de backups foram avaliados por inspeção.
-
-## Conclusão
-
-Para contas com TOTP ativo, a reutilização da senha deixou de produzir sessões no ensaio. O logout também passou a invalidar no servidor uma cópia do cookie, efeito que faltava à referência. As prioridades de correção são proteger a vinculação inicial do autenticador, conservar o histórico de falhas do IP e retirar as rotas públicas auxiliares de hash. O primeiro ajuste protege a conta antes que o TOTP esteja ativo. O segundo preserva o bloqueio entre contas. O terceiro elimina uma operação pública de processamento desnecessária ao login. Entre os requisitos do Projeto 3 ainda pendentes estão o CAPTCHA e a renovação da sessão durante o uso.
+Itens do enunciado ainda pendentes: CAPTCHA, Secure por padrão e renovação do token durante a sessão.
 
 ## Referências
 
-- OWASP. Requisitos de autenticação e gestão de sessões. [Application Security Verification Standard 4.0.3](https://github.com/OWASP/ASVS/releases/tag/v4.0.3_release)
-- OWASP. Metodologia para testes de aplicações web. [Web Security Testing Guide](https://wstg.owasp.org/v4.2/)
-- NIST. Diretrizes de autenticação e gestão de autenticadores. [SP 800-63B-4 — Authentication and Authenticator Management](https://pages.nist.gov/800-63-4/sp800-63b.html)
-- IETF. Algoritmo de senha de uso único baseado em tempo. [RFC 6238 — TOTP](https://www.rfc-editor.org/rfc/rfc6238)
-- IRTF. Função de derivação Argon2. [RFC 9106 — Argon2](https://www.rfc-editor.org/rfc/rfc9106)
-- OWASP. Orientações para armazenamento de senhas. [Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
-- OWASP. Orientações para o ciclo de vida das sessões. [Session Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
-- FIRST. Métricas de severidade e vetores-base. [CVSS v3.1 Specification](https://www.first.org/cvss/v3.1/specification-document)
-- Projeto 3. Código-fonte da aplicação e artefatos locais da avaliação. [Repositório de autenticação](https://github.com/Matheus336/autenticacao) · [Evidências da entrega](../../evidencias/README.md)
+AGUIAR, Matheus Felipe de. **autenticacao**. [S. l.]: GitHub, 2026. Disponível em: https://github.com/Matheus336/autenticacao. Acesso em: 24 nov. 2026.
+
+ASSOCIAÇÃO BRASILEIRA DE NORMAS TÉCNICAS. **NBR 10719**: informação e documentação: relatório técnico e/ou científico: apresentação. Rio de Janeiro: ABNT, 2015.
+
+BIRYUKOV, Alex et al. **Argon2 memory-hard function for password hashing and proof-of-work applications**. RFC 9106. [S. l.]: IRTF, 2021. Disponível em: https://www.rfc-editor.org/rfc/rfc9106. Acesso em: 24 nov. 2026.
+
+FIRST. **Common Vulnerability Scoring System v3.1**: specification document. [S. l.]: FIRST, 2019. Disponível em: https://www.first.org/cvss/v3.1/specification-document. Acesso em: 24 nov. 2026.
+
+M'RAIHI, David et al. **TOTP**: time-based one-time password algorithm. RFC 6238. [S. l.]: IETF, 2011. Disponível em: https://www.rfc-editor.org/rfc/rfc6238. Acesso em: 24 nov. 2026.
+
+NATIONAL INSTITUTE OF STANDARDS AND TECHNOLOGY. **Digital identity guidelines**: authentication and authenticator management. NIST SP 800-63B-4. Gaithersburg: NIST, 2025. Disponível em: https://pages.nist.gov/800-63-4/sp800-63b.html. Acesso em: 24 nov. 2026.
+
+OWASP. **Application Security Verification Standard 4.0.3**. [S. l.]: OWASP, 2021. Disponível em: https://github.com/OWASP/ASVS/releases/tag/v4.0.3_release. Acesso em: 24 nov. 2026.
+
+OWASP. **Web Security Testing Guide v4.2**: reporting. [S. l.]: OWASP, 2020. Disponível em: https://wstg.owasp.org/v4.2/5-Reporting/. Acesso em: 24 nov. 2026.
+
+OWASP. **Authentication cheat sheet**. [S. l.]: OWASP, [2026]a. Disponível em: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html. Acesso em: 24 nov. 2026.
+
+OWASP. **Session management cheat sheet**. [S. l.]: OWASP, [2026]b. Disponível em: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html. Acesso em: 24 nov. 2026.
+
+## Apêndice A — Escala de severidade
+
+A severidade segue a escala qualitativa do CVSS 3.1 (FIRST, 2019) aplicada à nota-base do vetor.
+
+| Nota-base | Severidade |
+| --- | --- |
+| 0,0 | Nenhuma |
+| 0,1 a 3,9 | Baixa |
+| 4,0 a 6,9 | Média |
+| 7,0 a 8,9 | Alta |
+| 9,0 a 10,0 | Crítica |
+
+## Apêndice B — Checklist de verificação (OWASP ASVS 4.0.3, nível 2)
+
+| Requisito | Verificação | Resultado | Evidência |
+| --- | --- | --- | --- |
+| 2.1.1 Senha com no mínimo 12 caracteres | Validador do cadastro | Não atende (mínimo 8) | `api/src/validators/auth.validators.ts` |
+| 2.1.7 Bloquear senhas vazadas ou comuns | Cadastro com "Senha123" | Não atende (201) | `armazenamento.log` |
+| 2.1.9 Sem regras de composição | Validador do cadastro | Não atende (exige maiúscula, minúscula e dígito) | `api/src/validators/auth.validators.ts` |
+| 2.2.1 Anti-automação contra força bruta e credenciais vazadas | Força bruta, stuffing, spraying | Parcial (bloqueio funciona; contorno por IP) | `forca-bruta.log`, `contorno-limite-ip.log` |
+| 2.4.1 Hash resistente a ataque offline | Hash lido do banco | Atende (Argon2id) | `armazenamento.log` |
+| 2.8.1 OTP com validade definida | Período de 30 s com tolerância de ±1 | Atende | `api/src/services/totp.service.ts` |
+| 2.8.2 Chave do OTP protegida | Segredo lido do banco | Não atende (texto claro) | `armazenamento.log` |
+| 2.8.4 OTP usado uma única vez | Mesmo código em dois logins | Não atende | `replay-totp.log` |
+| 3.2.1 Novo token na autenticação | Login com identificador plantado | Atende | `fixacao-csrf.log` |
+| 3.2.2 Token com no mínimo 64 bits de entropia | `randomBytes(32)` no código; token de 43 caracteres no cookie | Atende (256 bits) | `api/src/services/session.service.ts`, `cookie-atributos.log` |
+| 3.3.1 Logout e expiração invalidam o token | Replay após logout e expiração | Atende | `sequestro-sessao.log` |
+| 3.3.2 Reautenticação em 12 h ou após 30 min de inatividade | Serviço de sessão | Parcial (8 h absolutas; sem prazo de inatividade) | `api/src/services/session.service.ts` |
+| 3.4.1 Cookie com Secure | Set-Cookie local; configuração | Parcial (só com `NODE_ENV=production`) | `cookie-atributos.log`, `api/src/config.ts` |
+| 3.4.2 Cookie com HttpOnly | Set-Cookie | Atende | `cookie-atributos.log` |
+| 3.4.3 Cookie com SameSite | Set-Cookie | Atende (Lax) | `cookie-atributos.log` |
+
+## Apêndice C — Evidências e reprodução
+
+Para reproduzir, com Bun 1.3.14 instalado, a partir da raiz do repositório:
+
+```bash
+cd api
+bun install --frozen-lockfile
+bun test tests/
+```
+
+A execução regrava os arquivos de `evidencias/`. Os tempos de resposta do achado A-08 variam a cada execução.
+
+| Arquivo em `evidencias/` | Conteúdo |
+| --- | --- |
+| `resumo-antes-depois.md` | Tabela consolidada antes × depois |
+| `forca-bruta.log` | Dicionário de 26 senhas contra uma conta |
+| `forca-bruta-totp.log` | Força bruta no código TOTP |
+| `credential-stuffing.log` | 30 pares, 10 válidos |
+| `limite-ip.log` | 25 e-mails sem cadastro, uma tentativa cada |
+| `contorno-limite-ip.log` | Achado A-02 |
+| `cookie-atributos.log` | Atributos do Set-Cookie |
+| `adivinhacao-sessao.log` | Adivinhação de identificador de sessão |
+| `sequestro-sessao.log` | Replay, logout, novo login e expiração |
+| `fixacao-csrf.log` | Fixação de sessão e origem do logout |
+| `armazenamento.log` | Hash da senha, segredo TOTP e política |
+| `rotas-auxiliares.log` | Achado A-03 |
+| `replay-totp.log` | Achado A-04 |
+| `mfa-pendente.log` | Achado A-01 |
+| `enumeracao.log` | Achado A-08 |
