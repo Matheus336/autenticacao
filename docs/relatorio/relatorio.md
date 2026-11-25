@@ -1,8 +1,10 @@
-# UNIVERSIDADE TECNOLÓGICA FEDERAL DO PARANÁ — CÂMPUS DOIS VIZINHOS
+# UNIVERSIDADE TECNOLÓGICA FEDERAL DO PARANÁ
 
-**SA28S — SEGURANÇA E AUDITORIA EM SISTEMAS**
+CÂMPUS DOIS VIZINHOS
 
-**TRABALHO PRÁTICO 1 — PROJETO 3**
+SEGURANÇA E AUDITORIA EM SISTEMAS (SA28S)
+
+TRABALHO PRÁTICO 1: PROJETO 3
 
 **RELATÓRIO TÉCNICO DE AUDITORIA: IMPLEMENTAÇÃO DE AUTENTICAÇÃO SEGURA E GESTÃO DE IDENTIDADES**
 
@@ -21,7 +23,9 @@ Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas
 
 Professor: Erinaldo da Silva Pereira
 
-DOIS VIZINHOS — 2026
+DOIS VIZINHOS
+
+2026
 
 ## Controle de versões
 
@@ -114,7 +118,7 @@ Esta avaliação retrata o código na data do relatório e não garante a ausên
 
 ## 2 Sumário executivo
 
-O módulo cumpre a maior parte do que o Projeto 3 pede. As senhas são guardadas com Argon2id, um algoritmo feito para tornar lenta a quebra de senhas roubadas. O login exige um segundo fator: um código de 6 dígitos gerado por aplicativo autenticador no celular (TOTP). Tentativas repetidas são bloqueadas por 15 minutos. O cookie de sessão não pode ser lido por scripts e é invalidado no logout. Comparado a um sistema sem esses controles, o ganho é mensurável:
+O módulo cumpre a maior parte do que o Projeto 3 pede. As senhas são guardadas com Argon2id, um algoritmo feito para tornar lenta a quebra de senhas roubadas. O login exige um segundo fator: um código de 6 dígitos gerado por aplicativo autenticador no celular (TOTP). Tentativas repetidas são bloqueadas por 15 minutos. O cookie de sessão não pode ser lido por scripts e é invalidado no logout. Resultado dos mesmos ataques contra um sistema sem esses controles e contra o módulo:
 
 | Ataque | Sem controles (antes) | Módulo do grupo (depois) |
 | --- | --- | --- |
@@ -135,10 +139,10 @@ O CAPTCHA, citado no enunciado, não foi implementado. A seção 7 discute essa 
 
 ### 3.1 Referências de avaliação
 
-- **OWASP ASVS 4.0.3** (OWASP, 2021), capítulos V2 (autenticação) e V3 (gerenciamento de sessão): critérios de verificação, nível 2. O Apêndice B lista os requisitos verificados.
-- **NIST SP 800-63B-4** (NIST, 2025): diretrizes para senhas e autenticadores, usadas na avaliação da política de senha (seção 7).
-- **OWASP WSTG v4.2** (OWASP, 2020): seleção dos casos de teste e estrutura deste relatório.
-- **CVSS 3.1** (FIRST, 2019): severidade dos achados (Apêndice A).
+- OWASP ASVS 4.0.3 (OWASP, 2021), capítulos V2 (autenticação) e V3 (gerenciamento de sessão): critérios de verificação, nível 2. O Apêndice B lista os requisitos verificados.
+- NIST SP 800-63B-4 (NIST, 2025): diretrizes para senhas e autenticadores, usadas na avaliação da política de senha (seção 7).
+- OWASP WSTG v4.2 (OWASP, 2020): seleção dos casos de teste e estrutura deste relatório.
+- CVSS 3.1 (FIRST, 2019): severidade dos achados (Apêndice A).
 
 ### 3.2 Comparação antes × depois
 
@@ -202,7 +206,7 @@ Senha correta conhecida e códigos TOTP errados. Executado apenas na API.
 Lista de 30 pares e-mail/senha para 10 contas, com 10 pares válidos (reuso de senha).
 
 - **Antes:** 10 sessões abertas.
-- **Depois:** nenhuma sessão. As 10 senhas corretas, porém, foram confirmadas pela resposta `requiresTotp`. Nenhuma resposta 429 ocorreu, porque cada senha correta zerou o contador do IP (A-02).
+- **Depois:** nenhuma sessão, mas as 10 senhas corretas foram confirmadas pela resposta `requiresTotp`. Nenhuma resposta 429 ocorreu, porque cada senha correta zerou o contador do IP (A-02).
 - **Evidência:** `evidencias/credential-stuffing.log`
 
 ### 5.4 Password spraying e limite por IP
@@ -262,13 +266,14 @@ Fonte: `evidencias/resumo-antes-depois.md`, gerado pela suíte.
 
 ### 6.2 Detalhamento
 
-Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao código avaliado.
+Todas as fichas têm status Aberto: nenhuma correção foi aplicada ao código avaliado.
 
 #### A-01 Tomada de conta com MFA pendente
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Alta, 7,4 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N` |
+| Severidade | Alta (7,4) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N` |
 | Local | `api/src/services/auth.service.ts` (`loginUser`) |
 | Descrição | Enquanto o usuário não confirma o TOTP, `POST /auth/login` sem código devolve o segredo pendente a quem informar a senha correta. Quem enviar um código gerado com esse segredo ativa o MFA e recebe uma sessão. |
 | Cenário | O atacante obtém a senha de uma conta recém-criada, por vazamento ou credential stuffing. Em seguida, ativa o TOTP no próprio celular e passa a controlar o segundo fator da vítima. |
@@ -280,7 +285,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Média, 5,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N` |
+| Severidade | Média (5,3) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N` |
 | Local | `api/src/services/auth-attempt.service.ts` (`clearAuthFailures`), `api/src/services/auth.service.ts` |
 | Descrição | Após uma senha correta, `clearAuthFailures` apaga os contadores do e-mail e também do IP. A resposta `requiresTotp` revela quando a senha está correta, mesmo sem abrir sessão. Além disso, login (`login-password`) e ativação (`totp-activation-password`) têm contadores separados, o que permite 10 tentativas de senha por conta em vez de 5. |
 | Cenário | O atacante envia a senha correta da própria conta a cada 19 tentativas contra outras contas; o IP nunca chega a 20 falhas. A confidencialidade afetada é a confirmação de senhas, classificada como baixa porque o segundo fator impediu a abertura de sessões. Combinado com A-01, o impacto sobe para o de A-01. |
@@ -292,7 +298,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Alta, 7,5 (estimada) — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H` |
+| Severidade | Alta (7,5, estimada) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H` |
 | Local | `api/src/routes/password.routes.ts`, registrada em `api/src/app.ts` |
 | Descrição | `POST /auth/encrypt` gera hash bcrypt com custo 4 e `POST /auth/verify` verifica qualquer hash enviado pelo cliente, ambas sem autenticação e sem limite de tentativas. |
 | Cenário | Um cliente anônimo envia a `/auth/verify` hashes com parâmetros de custo elevados e ocupa a CPU do servidor, atrasando ou impedindo o login dos usuários. O `A:H` pressupõe essa sobrecarga, que não foi medida; se ela não se confirmar, o achado cai para Média. |
@@ -304,7 +311,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Média, 6,8 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:N` |
+| Severidade | Média (6,8) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:N` |
 | Local | `api/src/services/totp.service.ts` (`verifyTotp`) |
 | Descrição | O verificador não registra o último período aceito. Com a tolerância de ±1 período de 30 s, o mesmo código é aceito em vários logins por até 90 s. |
 | Cenário | Um atacante que já conhece a senha captura o código digitado pela vítima (phishing em tempo real ou observação da tela) e o reutiliza para abrir uma sessão paralela. |
@@ -316,7 +324,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Média, 6,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:L` |
+| Severidade | Média (6,3) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:L` |
 | Local | `api/src/routes/auth.routes.ts` |
 | Descrição | Logout, CPF e avatar conferem o cabeçalho `Origin`; cadastro, login e ativação do TOTP não. |
 | Cenário | Uma página maliciosa envia um formulário de login com as credenciais do atacante e deixa a vítima autenticada na conta dele (login CSRF). A mesma técnica pode provocar o bloqueio da conta da vítima. A viabilidade depende do navegador e não foi testada. |
@@ -328,7 +337,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Média, 6,0 — `CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:N` |
+| Severidade | Média (6,0) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:N` |
 | Local | `api/src/database/schema.ts`, `api/src/repositories/user.repository.ts` |
 | Descrição | `totp_secret` e `pending_totp_secret` são gravados em Base32 sem cifra. |
 | Cenário | Quem obtiver uma cópia do arquivo SQLite ou de um backup gera códigos válidos para todas as contas. |
@@ -340,7 +350,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Média, 5,9 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N` |
+| Severidade | Média (5,9) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N` |
 | Local | `api/src/config.ts`, `api/src/utils/session-cookie.ts`, `api/src/routes/auth.routes.ts` |
 | Descrição | `Secure` só é ativado com `NODE_ENV=production`. Apenas `GET /auth/avatar` envia `Cache-Control: private, no-store`; respostas com dados do perfil e com o segredo TOTP não. |
 | Cenário | Uma implantação sem `NODE_ENV=production` envia o cookie também por HTTP, onde pode ser interceptado. |
@@ -352,7 +363,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Média, 5,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N` |
+| Severidade | Média (5,3) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N` |
 | Local | `api/src/services/auth.service.ts`, `api/src/services/profile.service.ts` |
 | Descrição | O cadastro responde 409 para e-mail ou RA já usados. No login, quando o e-mail não existe, o Argon2id não é executado e a resposta sai muito mais rápido. A gravação de CPF também informa quando o documento pertence a outra conta. |
 | Cenário | O atacante descobre quais e-mails têm conta antes de tentar senhas. |
@@ -364,7 +376,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Média, 5,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L` |
+| Severidade | Média (5,3) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L` |
 | Local | `api/src/services/auth-attempt.service.ts` |
 | Descrição | Cinco senhas erradas bloqueiam a conta por 15 minutos, inclusive para o dono, que recebe 429 mesmo com a senha correta. |
 | Cenário | Um terceiro mantém a conta da vítima bloqueada repetindo 5 falhas a cada 15 minutos. |
@@ -376,9 +389,10 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Baixa, 3,7 — `CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:L/I:L/A:N` |
+| Severidade | Baixa (3,7) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:L/I:L/A:N` |
 | Local | `api/src/services/session.service.ts` |
-| Descrição | A sessão tem prazo absoluto de 8 h, dentro das 12 h que o ASVS 3.3.2 aceita no nível 2. Falta o limite de 30 minutos de inatividade que o mesmo requisito exige nesse nível. À parte, o token não é renovado durante o uso e não há opção de encerrar todas as sessões da conta. |
+| Descrição | A sessão tem prazo absoluto de 8 h, dentro das 12 h que o ASVS 3.3.2 aceita no nível 2. Falta o limite de 30 minutos de inatividade que o mesmo requisito exige nesse nível. O token também não é renovado durante o uso e não há opção de encerrar todas as sessões da conta. |
 | Cenário | Um cookie copiado em computador compartilhado continua válido por até 8 h, mesmo sem uso. |
 | Evidência | `evidencias/sequestro-sessao.log` mostra o replay aceito enquanto a sessão vale; a ausência de prazo de inatividade foi verificada por inspeção. |
 | Correção | Prazo de inatividade de 30 min, renovação do token em intervalos ou ações sensíveis e revogação de todas as sessões do usuário (OWASP, [2026]b). |
@@ -388,7 +402,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Baixa, 3,7 — `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N` |
+| Severidade | Baixa (3,7) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N` |
 | Local | `api/src/plugins/error-handler.ts`, rota `POST /auth/avatar` em `api/src/routes/auth.routes.ts` |
 | Descrição | O tratador de erros só formata `HttpError`; outros erros ficam com a resposta padrão do framework, que pode expor detalhes internos. O avatar é guardado com os bytes originais, inclusive metadados EXIF, que podem conter localização. As duas falhas expõem informação pouco sensível, por isso compartilham o vetor. |
 | Evidência | Inspeção. |
@@ -399,7 +414,8 @@ Todas as fichas têm status **Aberto**: nenhuma correção foi aplicada ao códi
 
 | Campo | Conteúdo |
 | --- | --- |
-| Severidade | Média, 5,3 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L` |
+| Severidade | Média (5,3) |
+| Vetor CVSS 3.1 | `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L` |
 | Local | `api/src/validators/auth.validators.ts` (`parseCredentials`) |
 | Descrição | O cadastro limita a senha a 128 caracteres, mas o login e a ativação aceitam qualquer tamanho até o limite global de 2,2 MB do corpo, e a senha segue para o Argon2id. |
 | Cenário | Requisições com senhas muito longas aumentam o custo de processamento de cada tentativa. Não foi medido. |
@@ -423,9 +439,9 @@ A conexão com o SQLite (`api/src/database/connection.ts`) não executa `PRAGMA 
 
 ## 8 Considerações finais
 
-O módulo atende ao núcleo do Projeto 3: Argon2id, TOTP, limitação de tentativas e sessões com cookie HttpOnly. Os testes mostram ganho claro sobre um sistema sem esses controles. Em contas com TOTP ativo, credenciais vazadas não abriram nenhuma sessão. Nenhuma de 200 tentativas de adivinhar um token de sessão acertou. O logout invalidou as cópias do cookie.
+O módulo implementa os controles centrais do Projeto 3: Argon2id, TOTP, limitação de tentativas e sessões com cookie HttpOnly. Em contas com TOTP ativo, credenciais vazadas não abriram nenhuma sessão. Nenhuma de 200 tentativas de adivinhar um token de sessão acertou. O logout invalidou as cópias do cookie.
 
-Os testes também mostram lacunas exploráveis. A ordem de correção recomendada é:
+Ordem de correção recomendada:
 
 1. Proteger a ativação pendente do TOTP (A-01).
 2. Remover as rotas auxiliares de hash (A-03).
