@@ -1,0 +1,9 @@
+# Formato da senha e do segredo TOTP no SQLite (valores truncados)
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:56.637Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+00:08:56.839  [depois] password_hash = $argon2id$v=19$m=65536,t=2,p=1$…
+00:08:56.839  [depois] totp_secret em texto claro: true (32 caracteres base32)
+00:08:56.839  [depois] cadastro com senha "abc" -> 400
+00:08:56.839  [depois] cadastro com senha comum "Senha123" -> 201 (aceita: sem lista de senhas vazadas)
+00:08:56.839  [antes]  senha guardada como SHA-256 sem sal; qualquer senha não vazia é aceita
