@@ -39,6 +39,7 @@ p.sem-recuo, li p, td p { text-indent: 0; }
 .capa, .rosto { height: 24.6cm; display: flex; flex-direction: column; justify-content: space-between; text-align: center; }
 .capa p, .rosto p { text-align: center; text-indent: 0; margin: 0; }
 .caixa-alta { text-transform: uppercase; font-weight: bold; }
+.maiusculas { text-transform: uppercase; }
 .titulo-capa { font-size: 14pt; font-weight: bold; text-transform: uppercase; line-height: 1.4; }
 .autores p { line-height: 1.5; }
 .natureza { width: 8cm; margin-left: auto; text-align: justify !important; font-size: 10pt; line-height: 1.2; }
@@ -51,7 +52,7 @@ th, td { border: 0.6pt solid #000; padding: 3pt 5pt; vertical-align: top; text-a
 th { background: #e6e6e6; font-weight: bold; }
 tr { break-inside: avoid; page-break-inside: avoid; }
 table.ficha { break-inside: avoid; page-break-inside: avoid; }
-table.ficha td:first-child { width: 3.2cm; font-weight: bold; }
+table.ficha td:first-child { width: 3.2cm; background: #f2f2f2; }
 code { font-family: 'Liberation Mono', monospace; font-size: 9pt; overflow-wrap: anywhere; }
 td code { font-size: 8.5pt; }
 pre { font-family: 'Liberation Mono', monospace; font-size: 10pt; line-height: 1.3; border: 0.6pt solid #999; padding: 6pt 8pt; margin: 6pt 0 12pt 0; white-space: pre-wrap; }
@@ -159,13 +160,13 @@ def montar_html(paginas):
 <div class="pagina capa">
   <div><p class="caixa-alta">Universidade Tecnológica Federal do Paraná</p>
   <p class="caixa-alta">Câmpus Dois Vizinhos</p></div>
-  <div class="autores">{''.join(f'<p class="caixa-alta">{n}</p>' for n in INTEGRANTES)}</div>
+  <div class="autores">{''.join(f'<p class="maiusculas">{n}</p>' for n in INTEGRANTES)}</div>
   <div><p class="titulo-capa">{TITULO}</p></div>
   <div><p class="caixa-alta">Dois Vizinhos</p><p class="caixa-alta">2026</p></div>
 </div>"""
     rosto = f"""
 <div class="pagina rosto">
-  <div class="autores">{''.join(f'<p class="caixa-alta">{n}</p>' for n in INTEGRANTES)}</div>
+  <div class="autores">{''.join(f'<p class="maiusculas">{n}</p>' for n in INTEGRANTES)}</div>
   <div><p class="titulo-capa">{TITULO}</p></div>
   <div><p class="natureza">Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas (SA28S) da Universidade Tecnológica Federal do Paraná, Câmpus Dois Vizinhos, como entrega do Trabalho Prático 1 (Projeto 3).</p>
   <p class="natureza" style="margin-top:12pt">Professor: Erinaldo da Silva Pereira</p></div>

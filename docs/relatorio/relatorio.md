@@ -88,7 +88,7 @@ Verificar se o módulo de autenticação atende às entregas do Projeto 3 do Tra
 | Banco SQLite gerado pela API | Implantação em produção, HTTPS e proxy reverso |
 | | Ataques distribuídos de vários IPs e negação de serviço por carga |
 
-**Versões avaliadas:**
+Versões avaliadas:
 
 | Artefato | Localização |
 | --- | --- |
@@ -129,9 +129,9 @@ O módulo cumpre a maior parte do que o Projeto 3 pede. As senhas são guardadas
 
 A auditoria registrou 12 achados: 2 de severidade alta, 8 média e 2 baixa. Os que devem ser corrigidos primeiro são:
 
-1. **Tomada de conta antes da ativação do segundo fator (Alta).** Se o usuário se cadastra e não conclui a configuração do aplicativo autenticador, quem souber a senha recebe a chave do segundo fator e passa a controlá-lo. Comprovado por teste.
-2. **Endpoints de teste expostos sem login (Alta, estimada).** Duas rotas auxiliares de hash (`/auth/encrypt` e `/auth/verify`) respondem a qualquer pessoa. Podem ser usadas para sobrecarregar o servidor e deixar o login indisponível. O acesso foi comprovado; a sobrecarga foi estimada e não medida.
-3. **Contorno do limite por IP (Média).** Um login correto zera o contador de falhas do IP. Com isso, um atacante fez 60 tentativas erradas sem ser bloqueado e confirmou senhas válidas, ainda que sem entrar nas contas protegidas pelo segundo fator.
+1. Tomada de conta antes da ativação do segundo fator (Alta). Se o usuário se cadastra e não conclui a configuração do aplicativo autenticador, quem souber a senha recebe a chave do segundo fator e passa a controlá-lo. Comprovado por teste.
+2. Endpoints de teste expostos sem login (Alta, estimada). Duas rotas auxiliares de hash (`/auth/encrypt` e `/auth/verify`) respondem a qualquer pessoa. Podem ser usadas para sobrecarregar o servidor e deixar o login indisponível. O acesso foi comprovado; a sobrecarga foi estimada e não medida.
+3. Contorno do limite por IP (Média). Um login correto zera o contador de falhas do IP. Com isso, um atacante fez 60 tentativas erradas sem ser bloqueado e confirmou senhas válidas, ainda que sem entrar nas contas protegidas pelo segundo fator.
 
 O CAPTCHA, citado no enunciado, não foi implementado. A seção 7 discute essa escolha.
 
@@ -190,33 +190,33 @@ A suíte `api/tests/seguranca.test.ts` usa o executor `bun test`. Ela sobe os do
 
 Dicionário de 26 senhas comuns contra uma conta, com a senha correta na 25ª posição.
 
-- **Antes:** a senha foi descoberta na tentativa 25.
-- **Depois:** 5 respostas 401 e, em seguida, 21 respostas 429 com `Retry-After: 900`. A senha correta também recebeu 429.
-- **Evidência:** `evidencias/forca-bruta.log`
+- Antes: a senha foi descoberta na tentativa 25.
+- Depois: 5 respostas 401 e, em seguida, 21 respostas 429 com `Retry-After: 900`. A senha correta também recebeu 429.
+- Evidência: `evidencias/forca-bruta.log`
 
 ### 5.2 Força bruta contra o TOTP
 
 Senha correta conhecida e códigos TOTP errados. Executado apenas na API.
 
-- **Depois:** 5 respostas 401, seguidas de 429; o código correto, na 8ª tentativa, também recebeu 429. Com 5 tentativas a cada 15 minutos, 3 códigos aceitos por vez e 10⁶ combinações, a chance teórica de acerto em cada janela de 15 minutos é de cerca de 0,0015%.
-- **Evidência:** `evidencias/forca-bruta-totp.log`
+- Depois: 5 respostas 401, seguidas de 429; o código correto, na 8ª tentativa, também recebeu 429. Com 5 tentativas a cada 15 minutos, 3 códigos aceitos por vez e 10⁶ combinações, a chance teórica de acerto em cada janela de 15 minutos é de cerca de 0,0015%.
+- Evidência: `evidencias/forca-bruta-totp.log`
 
 ### 5.3 Credential stuffing
 
 Lista de 30 pares e-mail/senha para 10 contas, com 10 pares válidos (reuso de senha).
 
-- **Antes:** 10 sessões abertas.
-- **Depois:** nenhuma sessão, mas as 10 senhas corretas foram confirmadas pela resposta `requiresTotp`. Nenhuma resposta 429 ocorreu, porque cada senha correta zerou o contador do IP (A-02).
-- **Evidência:** `evidencias/credential-stuffing.log`
+- Antes: 10 sessões abertas.
+- Depois: nenhuma sessão, mas as 10 senhas corretas foram confirmadas pela resposta `requiresTotp`. Nenhuma resposta 429 ocorreu, porque cada senha correta zerou o contador do IP (A-02).
+- Evidência: `evidencias/credential-stuffing.log`
 
 ### 5.4 Password spraying e limite por IP
 
 Uma senha errada contra 25 e-mails sem cadastro, a partir do mesmo IP.
 
-- **Antes:** 25 respostas 401, nenhum bloqueio.
-- **Depois:** 20 respostas 401 e bloqueio (429) a partir da 21ª.
-- **Contorno (apenas na API):** o atacante enviou a senha correta da própria conta a cada 19 tentativas, sem concluir o TOTP. Assim, 60 tentativas erradas passaram sem nenhum 429.
-- **Evidências:** `evidencias/limite-ip.log`, `evidencias/contorno-limite-ip.log`
+- Antes: 25 respostas 401, nenhum bloqueio.
+- Depois: 20 respostas 401 e bloqueio (429) a partir da 21ª.
+- Contorno (apenas na API): o atacante enviou a senha correta da própria conta a cada 19 tentativas, sem concluir o TOTP. Assim, 60 tentativas erradas passaram sem nenhum 429.
+- Evidências: `evidencias/limite-ip.log`, `evidencias/contorno-limite-ip.log`
 
 ### 5.5 Sequestro de sessão
 
