@@ -1,0 +1,6 @@
+# Atributos do Set-Cookie (valor do token mascarado)
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:55.856Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+00:08:56.054  [antes]  Set-Cookie: sid=12…(2 caracteres); Path=/
+00:08:56.054  [depois] Set-Cookie: sid=objs8K…(43 caracteres); Path=/; HttpOnly; SameSite=Lax; Max-Age=28800

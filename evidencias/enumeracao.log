@@ -1,0 +1,6 @@
+# Achado: enumeração de e-mails pelo cadastro e pelo tempo de resposta
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:57.319Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+00:08:57.519  [depois] cadastro com e-mail já existente -> 409 "Este RA ou e-mail já está cadastrado."
+00:08:58.049  [depois] login com senha errada, mediana de 8: e-mail existente 65.4 ms; inexistente 0.4 ms

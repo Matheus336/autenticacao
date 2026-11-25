@@ -1,0 +1,6 @@
+# Achado: rotas auxiliares de hash acessíveis sem autenticação
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:56.839Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+00:08:56.843  [depois] POST /auth/encrypt sem sessão -> 200, hash começa com $2b$04$
+00:08:56.843  [depois] POST /auth/verify sem sessão -> 200, verified=true
