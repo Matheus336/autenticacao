@@ -31,3 +31,8 @@ Senhas, códigos TOTP, segredos e cookies aparecem mascarados nos logs. Os e-mai
 | `replay-totp.log` | Achado: o mesmo código TOTP é aceito duas vezes |
 | `mfa-pendente.log` | Achado: conta com MFA pendente entrega o segredo a quem tem a senha |
 | `enumeracao.log` | Achado: enumeração de e-mail pelo cadastro e pelo tempo de resposta |
+| `concorrencia-forca-bruta.log` | Achado: 100 tentativas simultâneas contornam o bloqueio por conta |
+| `rotas-auxiliares-carga.log` | Carga em `/auth/verify` com hash bcrypt de custo 14 |
+| `origem-login.log` | Achado: login aceito como formulário de outra origem |
+| `erro-interno.log` | Achado: erro interno exposto em `/auth/verify` |
+| `senha-longa.log` | Medição: login com senha de 2 MB |

@@ -1,0 +1,7 @@
+# Achado: 100 tentativas de senha enviadas ao mesmo tempo contra uma conta
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:24.241Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+23:56:27.219  [depois] 100 requisições simultâneas: 99 × 401, 0 × 429, 1 × 200
+23:56:27.219  [depois] senha correta na 99ª posição -> 200 requiresTotp (senha confirmada)
+23:56:27.219  [depois] tentativa seguinte, já sequencial -> 429

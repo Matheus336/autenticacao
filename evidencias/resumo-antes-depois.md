@@ -1,6 +1,6 @@
 # Resumo antes x depois
 
-Gerado por `bun test` em 2026-11-25T00:08:58.049Z.
+Gerado por `bun test` em 2026-11-25T23:56:29.829Z.
 "Antes" = servidor de referência inseguro (api/tests/antes/servidor-inseguro.ts).
 "Depois" = API do projeto (api/src), sem alterações.
 
@@ -16,3 +16,4 @@ Gerado por `bun test` em 2026-11-25T00:08:58.049Z.
 | Replay de cookie roubado | 200 enquanto a vítima está logada e 200 após o logout | 200 enquanto a sessão vale (limitação de token portador); 401 após logout, novo login ou expiração |
 | Fixação de sessão / CSRF no logout | não testado (logout não revoga a sessão no servidor, ver replay) | sid plantado ignorado (401); logout sem Origin ou com origem externa -> 403 |
 | Armazenamento da senha | SHA-256 sem sal, sem política | Argon2id (m=64 MiB, t=2, p=1); política 8–128 com maiúscula, minúscula e dígito; "Senha123" ainda é aceita |
+| Força bruta com 100 requisições simultâneas (achado) | não há limite | 99 × 401 e 0 × 429; a senha correta foi confirmada |

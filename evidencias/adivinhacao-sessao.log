@@ -1,6 +1,6 @@
 # Atacante tenta adivinhar sid sem roubar o cookie
-# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:56.055Z
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:22.345Z
 # Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
 
-00:08:56.060  [antes]  sid=1..50 -> 13 sessões válidas de outros usuários encontradas
-00:08:56.081  [depois] 200 tokens aleatórios de 256 bits -> 0 válidos
+23:56:22.349  [antes]  sid=1..50 -> 13 sessões válidas de outros usuários encontradas
+23:56:22.370  [depois] 200 tokens aleatórios de 256 bits -> 0 válidos

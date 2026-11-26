@@ -1,0 +1,5 @@
+# Achado A-05: login enviado como formulário HTML de outra origem
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:28.976Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+23:56:29.210  [depois] POST /auth/login (form-urlencoded, Origin: https://atacante.example) -> 200, cookie emitido: true

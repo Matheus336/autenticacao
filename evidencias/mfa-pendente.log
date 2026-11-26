@@ -1,7 +1,7 @@
 # Achado: atacante com a senha ativa o MFA no próprio celular
-# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:57.111Z
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:23.335Z
 # Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
 
-00:08:57.319  [depois] vítima se cadastra (201) e não conclui a ativação do TOTP
-00:08:57.319  [depois] atacante com a senha: POST /auth/login sem código -> 200, recebe totpSetup.secret
-00:08:57.319  [depois] atacante envia código gerado com esse segredo -> 200, sessão criada: true
+23:56:23.528  [depois] vítima se cadastra (201) e não conclui a ativação do TOTP
+23:56:23.528  [depois] atacante com a senha: POST /auth/login sem código -> 200, recebe totpSetup.secret
+23:56:23.528  [depois] atacante envia código gerado com esse segredo -> 200, sessão criada: true

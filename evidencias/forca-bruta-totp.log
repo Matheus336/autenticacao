@@ -1,12 +1,12 @@
 # Força bruta no segundo fator (senha já conhecida)
-# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:51.582Z
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:17.989Z
 # Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
 
-00:08:51.777  [depois] #1 POST /auth/login (senha correta, código errado) -> 401
-00:08:51.849  [depois] #2 POST /auth/login (senha correta, código errado) -> 401
-00:08:51.914  [depois] #3 POST /auth/login (senha correta, código errado) -> 401
-00:08:51.979  [depois] #4 POST /auth/login (senha correta, código errado) -> 401
-00:08:52.044  [depois] #5 POST /auth/login (senha correta, código errado) -> 401
-00:08:52.109  [depois] #6 POST /auth/login (senha correta, código errado) -> 429
-00:08:52.172  [depois] #7 POST /auth/login (senha correta, código errado) -> 429
-00:08:52.236  [depois] #8 POST /auth/login (senha e código corretos) -> 429
+23:56:18.182  [depois] #1 POST /auth/login (senha correta, código errado) -> 401
+23:56:18.246  [depois] #2 POST /auth/login (senha correta, código errado) -> 401
+23:56:18.309  [depois] #3 POST /auth/login (senha correta, código errado) -> 401
+23:56:18.373  [depois] #4 POST /auth/login (senha correta, código errado) -> 401
+23:56:18.437  [depois] #5 POST /auth/login (senha correta, código errado) -> 401
+23:56:18.501  [depois] #6 POST /auth/login (senha correta, código errado) -> 429
+23:56:18.565  [depois] #7 POST /auth/login (senha correta, código errado) -> 429
+23:56:18.629  [depois] #8 POST /auth/login (senha e código corretos) -> 429

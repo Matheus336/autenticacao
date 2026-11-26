@@ -1,7 +1,7 @@
 # Fixação de sessão e logout cross-site
-# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:56.433Z
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:22.692Z
 # Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
 
-00:08:56.634  [depois] vítima entra com sid plantado pelo atacante; servidor emite outro sid: true
-00:08:56.634  [depois] atacante usa o sid plantado -> 401
-00:08:56.636  [depois] POST /auth/logout sem Origin -> 403; Origin atacante -> 403; sessão continua -> 200
+23:56:22.885  [depois] vítima entra com sid plantado pelo atacante; servidor emite outro sid: true
+23:56:22.885  [depois] atacante usa o sid plantado -> 401
+23:56:22.885  [depois] POST /auth/logout sem Origin -> 403; Origin atacante -> 403; sessão continua -> 200

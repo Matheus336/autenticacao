@@ -1,0 +1,8 @@
+# Achado A-03: carga em /auth/verify com hash bcrypt de custo 14
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:27.220Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+23:56:28.976  [depois] CPUs disponíveis: 12
+23:56:28.976  [depois] login sem carga: 79 ms
+23:56:28.976  [depois] 4 × POST /auth/verify anônimos com bcrypt custo 14 -> 200, 200, 200, 200, 767 ms no total
+23:56:28.976  [depois] login durante a carga: 100 ms

@@ -1,57 +1,57 @@
 # Força bruta com dicionário de 26 senhas comuns contra uma conta
-# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:51.079Z
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:17.479Z
 # Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
 
-00:08:51.085  [antes] alvo=vi***@teste.local
-00:08:51.085  [antes] #1 POST /auth/login -> 401
-00:08:51.085  [antes] #2 POST /auth/login -> 401
-00:08:51.085  [antes] #3 POST /auth/login -> 401
-00:08:51.086  [antes] #4 POST /auth/login -> 401
-00:08:51.086  [antes] #5 POST /auth/login -> 401
-00:08:51.086  [antes] #6 POST /auth/login -> 401
-00:08:51.086  [antes] #7 POST /auth/login -> 401
-00:08:51.086  [antes] #8 POST /auth/login -> 401
-00:08:51.087  [antes] #9 POST /auth/login -> 401
-00:08:51.087  [antes] #10 POST /auth/login -> 401
-00:08:51.087  [antes] #11 POST /auth/login -> 401
-00:08:51.087  [antes] #12 POST /auth/login -> 401
-00:08:51.087  [antes] #13 POST /auth/login -> 401
-00:08:51.087  [antes] #14 POST /auth/login -> 401
-00:08:51.088  [antes] #15 POST /auth/login -> 401
-00:08:51.088  [antes] #16 POST /auth/login -> 401
-00:08:51.088  [antes] #17 POST /auth/login -> 401
-00:08:51.088  [antes] #18 POST /auth/login -> 401
-00:08:51.088  [antes] #19 POST /auth/login -> 401
-00:08:51.088  [antes] #20 POST /auth/login -> 401
-00:08:51.088  [antes] #21 POST /auth/login -> 401
-00:08:51.088  [antes] #22 POST /auth/login -> 401
-00:08:51.089  [antes] #23 POST /auth/login -> 401
-00:08:51.089  [antes] #24 POST /auth/login -> 401
-00:08:51.089  [antes] #25 POST /auth/login -> 200 (sessão criada)
-00:08:51.251  [depois] alvo=vi***@teste.local
-00:08:51.319  [depois] #1 POST /auth/login -> 401
-00:08:51.383  [depois] #2 POST /auth/login -> 401
-00:08:51.447  [depois] #3 POST /auth/login -> 401
-00:08:51.514  [depois] #4 POST /auth/login -> 401
-00:08:51.577  [depois] #5 POST /auth/login -> 401
-00:08:51.578  [depois] #6 POST /auth/login -> 429 Retry-After=900s
-00:08:51.578  [depois] #7 POST /auth/login -> 429 Retry-After=900s
-00:08:51.578  [depois] #8 POST /auth/login -> 429 Retry-After=900s
-00:08:51.578  [depois] #9 POST /auth/login -> 429 Retry-After=900s
-00:08:51.579  [depois] #10 POST /auth/login -> 429 Retry-After=900s
-00:08:51.579  [depois] #11 POST /auth/login -> 429 Retry-After=900s
-00:08:51.579  [depois] #12 POST /auth/login -> 429 Retry-After=900s
-00:08:51.579  [depois] #13 POST /auth/login -> 429 Retry-After=900s
-00:08:51.579  [depois] #14 POST /auth/login -> 429 Retry-After=900s
-00:08:51.580  [depois] #15 POST /auth/login -> 429 Retry-After=900s
-00:08:51.580  [depois] #16 POST /auth/login -> 429 Retry-After=900s
-00:08:51.580  [depois] #17 POST /auth/login -> 429 Retry-After=900s
-00:08:51.580  [depois] #18 POST /auth/login -> 429 Retry-After=900s
-00:08:51.580  [depois] #19 POST /auth/login -> 429 Retry-After=900s
-00:08:51.580  [depois] #20 POST /auth/login -> 429 Retry-After=900s
-00:08:51.581  [depois] #21 POST /auth/login -> 429 Retry-After=900s
-00:08:51.581  [depois] #22 POST /auth/login -> 429 Retry-After=900s
-00:08:51.581  [depois] #23 POST /auth/login -> 429 Retry-After=900s
-00:08:51.581  [depois] #24 POST /auth/login -> 429 Retry-After=900s
-00:08:51.581  [depois] #25 POST /auth/login -> 429 Retry-After=900s (senha correta enviada)
-00:08:51.581  [depois] #26 POST /auth/login -> 429 Retry-After=900s
+23:56:17.492  [antes] alvo=vi***@teste.local
+23:56:17.493  [antes] #1 POST /auth/login -> 401
+23:56:17.493  [antes] #2 POST /auth/login -> 401
+23:56:17.493  [antes] #3 POST /auth/login -> 401
+23:56:17.494  [antes] #4 POST /auth/login -> 401
+23:56:17.494  [antes] #5 POST /auth/login -> 401
+23:56:17.495  [antes] #6 POST /auth/login -> 401
+23:56:17.495  [antes] #7 POST /auth/login -> 401
+23:56:17.495  [antes] #8 POST /auth/login -> 401
+23:56:17.495  [antes] #9 POST /auth/login -> 401
+23:56:17.495  [antes] #10 POST /auth/login -> 401
+23:56:17.495  [antes] #11 POST /auth/login -> 401
+23:56:17.496  [antes] #12 POST /auth/login -> 401
+23:56:17.496  [antes] #13 POST /auth/login -> 401
+23:56:17.496  [antes] #14 POST /auth/login -> 401
+23:56:17.496  [antes] #15 POST /auth/login -> 401
+23:56:17.496  [antes] #16 POST /auth/login -> 401
+23:56:17.496  [antes] #17 POST /auth/login -> 401
+23:56:17.496  [antes] #18 POST /auth/login -> 401
+23:56:17.497  [antes] #19 POST /auth/login -> 401
+23:56:17.497  [antes] #20 POST /auth/login -> 401
+23:56:17.497  [antes] #21 POST /auth/login -> 401
+23:56:17.497  [antes] #22 POST /auth/login -> 401
+23:56:17.497  [antes] #23 POST /auth/login -> 401
+23:56:17.497  [antes] #24 POST /auth/login -> 401
+23:56:17.497  [antes] #25 POST /auth/login -> 200 (sessão criada)
+23:56:17.660  [depois] alvo=vi***@teste.local
+23:56:17.726  [depois] #1 POST /auth/login -> 401
+23:56:17.790  [depois] #2 POST /auth/login -> 401
+23:56:17.854  [depois] #3 POST /auth/login -> 401
+23:56:17.916  [depois] #4 POST /auth/login -> 401
+23:56:17.981  [depois] #5 POST /auth/login -> 401
+23:56:17.983  [depois] #6 POST /auth/login -> 429 Retry-After=900s
+23:56:17.983  [depois] #7 POST /auth/login -> 429 Retry-After=900s
+23:56:17.984  [depois] #8 POST /auth/login -> 429 Retry-After=900s
+23:56:17.984  [depois] #9 POST /auth/login -> 429 Retry-After=900s
+23:56:17.984  [depois] #10 POST /auth/login -> 429 Retry-After=900s
+23:56:17.984  [depois] #11 POST /auth/login -> 429 Retry-After=900s
+23:56:17.984  [depois] #12 POST /auth/login -> 429 Retry-After=900s
+23:56:17.985  [depois] #13 POST /auth/login -> 429 Retry-After=900s
+23:56:17.985  [depois] #14 POST /auth/login -> 429 Retry-After=900s
+23:56:17.985  [depois] #15 POST /auth/login -> 429 Retry-After=900s
+23:56:17.985  [depois] #16 POST /auth/login -> 429 Retry-After=900s
+23:56:17.986  [depois] #17 POST /auth/login -> 429 Retry-After=900s
+23:56:17.986  [depois] #18 POST /auth/login -> 429 Retry-After=900s
+23:56:17.986  [depois] #19 POST /auth/login -> 429 Retry-After=900s
+23:56:17.986  [depois] #20 POST /auth/login -> 429 Retry-After=900s
+23:56:17.986  [depois] #21 POST /auth/login -> 429 Retry-After=900s
+23:56:17.987  [depois] #22 POST /auth/login -> 429 Retry-After=900s
+23:56:17.987  [depois] #23 POST /auth/login -> 429 Retry-After=900s
+23:56:17.987  [depois] #24 POST /auth/login -> 429 Retry-After=900s
+23:56:17.987  [depois] #25 POST /auth/login -> 429 Retry-After=900s (senha correta enviada)
+23:56:17.987  [depois] #26 POST /auth/login -> 429 Retry-After=900s
