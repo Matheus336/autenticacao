@@ -464,3 +464,106 @@ describe("hash, política de senha e achados adicionais", () => {
     expect(mediana(existentes)).toBeGreaterThan(mediana(inexistentes));
   }, TEMPO);
 });
+
+describe("achados verificados por medição", () => {
+  test("achado: requisições simultâneas contornam o bloqueio por conta", async () => {
+    const log = abrirEvidencia("concorrencia-forca-bruta.log", "Achado: 100 tentativas de senha enviadas ao mesmo tempo contra uma conta");
+    const email = "concorrencia@teste.local";
+    await cadastrarComMfa(email, SENHA);
+    const senhas = Array.from({ length: 100 }, (_, i) => (i === 98 ? SENHA : `Errada${i}x`));
+    const respostas = await Promise.all(
+      senhas.map((password) => requisitar(DEPOIS, "POST", "/auth/login", { corpo: { email, password } })),
+    );
+    const contagem = (s: number) => respostas.filter((r) => r.status === s).length;
+    const correta = respostas[98]!;
+    log(`[depois] 100 requisições simultâneas: ${contagem(401)} × 401, ${contagem(429)} × 429, ${contagem(200)} × 200`);
+    log(`[depois] senha correta na 99ª posição -> ${correta.status}${correta.corpo?.requiresTotp ? " requiresTotp (senha confirmada)" : ""}`);
+    const sequencial = await requisitar(DEPOIS, "POST", "/auth/login", { corpo: { email, password: "Errada999x" } });
+    log(`[depois] tentativa seguinte, já sequencial -> ${sequencial.status}`);
+
+    expect(contagem(429)).toBeLessThan(95);
+    expect(correta.corpo?.requiresTotp).toBe(true);
+    resumo.push({
+      cenario: "Força bruta com 100 requisições simultâneas (achado)",
+      antes: "não há limite",
+      depois: `${contagem(401)} × 401 e ${contagem(429)} × 429; a senha correta foi confirmada`,
+    });
+  }, TEMPO);
+
+  test("achado: /auth/verify com hash de custo alto atrasa o login", async () => {
+    const log = abrirEvidencia("rotas-auxiliares-carga.log", "Achado A-03: carga em /auth/verify com hash bcrypt de custo 14");
+    const email = "carga@teste.local";
+    await cadastrarComMfa(email, SENHA);
+    const medirLogin = async () => {
+      limparTentativas();
+      const inicio = performance.now();
+      await requisitar(DEPOIS, "POST", "/auth/login", { corpo: { email, password: SENHA } });
+      return performance.now() - inicio;
+    };
+    const base = await medirLogin();
+    const hashCaro = await Bun.password.hash("x", { algorithm: "bcrypt", cost: 14 });
+    const inicioVerify = performance.now();
+    const carga = Array.from({ length: 4 }, () =>
+      requisitar(DEPOIS, "POST", "/auth/verify", { corpo: { password: "y", hash: hashCaro }, origem: null }),
+    );
+    await Bun.sleep(100);
+    const sobCarga = await medirLogin();
+    const resultados = await Promise.all(carga);
+    const duracaoVerify = performance.now() - inicioVerify;
+    log(`[depois] CPUs disponíveis: ${navigator.hardwareConcurrency}`);
+    log(`[depois] login sem carga: ${base.toFixed(0)} ms`);
+    log(`[depois] 4 × POST /auth/verify anônimos com bcrypt custo 14 -> ${resultados.map((r) => r.status).join(", ")}, ${duracaoVerify.toFixed(0)} ms no total`);
+    log(`[depois] login durante a carga: ${sobCarga.toFixed(0)} ms`);
+
+    expect(resultados.every((r) => r.status === 200)).toBe(true);
+  }, TEMPO);
+
+  test("achado: login aceita formulário de outra origem", async () => {
+    const log = abrirEvidencia("origem-login.log", "Achado A-05: login enviado como formulário HTML de outra origem");
+    const email = "csrf@teste.local";
+    const segredo = await cadastrarComMfa(email, SENHA);
+    const corpo = new URLSearchParams({ email, password: SENHA, code: codigoTotp(segredo) });
+    const r = await fetch(`${DEPOIS}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: "https://atacante.example" },
+      body: corpo,
+    });
+    const setCookie = r.headers.get("set-cookie");
+    log(`[depois] POST /auth/login (form-urlencoded, Origin: https://atacante.example) -> ${r.status}, cookie emitido: ${Boolean(setCookie?.includes("sid="))}`);
+
+    expect(r.status).toBe(200);
+    expect(setCookie).toContain("sid=");
+  }, TEMPO);
+
+  test("achado: erro interno exposto em /auth/verify", async () => {
+    const log = abrirEvidencia("erro-interno.log", "Achado A-11: hash inválido em /auth/verify");
+    const r = await requisitar(DEPOIS, "POST", "/auth/verify", { corpo: { password: "x", hash: "invalido" }, origem: null });
+    const texto = typeof r.corpo === "string" ? r.corpo : JSON.stringify(r.corpo);
+    log(`[depois] POST /auth/verify com hash "invalido" -> ${r.status}`);
+    log(`[depois] corpo da resposta (até 160 caracteres): ${texto.slice(0, 160)}`);
+
+    expect(r.status).toBe(500);
+  }, TEMPO);
+
+  test("medição: senha de 2 MB no login", async () => {
+    const log = abrirEvidencia("senha-longa.log", "Observação da seção 6.3: custo de uma senha de 2 MB no login");
+    const email = "longa@teste.local";
+    await cadastrarComMfa(email, SENHA);
+    const medir = async (password: string) => {
+      const tempos: number[] = [];
+      for (let i = 0; i < 3; i += 1) {
+        limparTentativas();
+        const inicio = performance.now();
+        await requisitar(DEPOIS, "POST", "/auth/login", { corpo: { email, password } });
+        tempos.push(performance.now() - inicio);
+      }
+      return tempos.sort((a, b) => a - b)[1]!;
+    };
+    const normal = await medir("Errada123");
+    const longa = await medir("a".repeat(2_000_000));
+    log(`[depois] login com senha errada de 9 caracteres: ${normal.toFixed(0)} ms (mediana de 3)`);
+    log(`[depois] login com senha de 2.000.000 caracteres: ${longa.toFixed(0)} ms (mediana de 3)`);
+
+    expect(longa).toBeGreaterThan(0);
+  }, TEMPO);
+});

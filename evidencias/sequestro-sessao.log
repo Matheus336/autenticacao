@@ -1,10 +1,10 @@
 # Replay de cookie roubado antes e depois do logout, novo login e expiração
-# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:56.081Z
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:22.370Z
 # Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
 
-00:08:56.082  [antes]  cookie copiado, GET /auth/me de outro cliente -> 200
-00:08:56.082  [antes]  vítima faz logout; replay do mesmo cookie -> 200
-00:08:56.288  [depois] cookie ikYYV-…(43 caracteres) copiado, GET /auth/me de outro cliente -> 200
-00:08:56.289  [depois] vítima faz logout (200); replay do mesmo cookie -> 401
-00:08:56.432  [depois] novo login enviando o cookie anterior (200); cookie anterior -> 401
-00:08:56.433  [depois] expires_at forçado para o passado no banco; GET /auth/me -> 401
+23:56:22.371  [antes]  cookie copiado, GET /auth/me de outro cliente -> 200
+23:56:22.371  [antes]  vítima faz logout; replay do mesmo cookie -> 200
+23:56:22.563  [depois] cookie b9tHSG…(43 caracteres) copiado, GET /auth/me de outro cliente -> 200
+23:56:22.563  [depois] vítima faz logout (200); replay do mesmo cookie -> 401
+23:56:22.691  [depois] novo login enviando o cookie anterior (200); cookie anterior -> 401
+23:56:22.691  [depois] expires_at forçado para o passado no banco; GET /auth/me -> 401

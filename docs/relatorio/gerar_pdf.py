@@ -27,7 +27,7 @@ INTEGRANTES = [
     "Murilo Pedron Dal Molim",
     "Pedro Luciano Moura Kuhn",
 ]
-TITULO = "Relatório técnico de auditoria: implementação de autenticação segura e gestão de identidades"
+TITULO = "Sistema Acadêmico de Autenticação: relatório técnico de auditoria de segurança"
 
 CSS = """
 @page { size: A4; margin: 3cm 2cm 2cm 3cm; }
@@ -168,7 +168,7 @@ def montar_html(paginas):
 <div class="pagina rosto">
   <div class="autores">{''.join(f'<p class="maiusculas">{n}</p>' for n in INTEGRANTES)}</div>
   <div><p class="titulo-capa">{TITULO}</p></div>
-  <div><p class="natureza">Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas (SA28S) da Universidade Tecnológica Federal do Paraná, Câmpus Dois Vizinhos, como entrega do Trabalho Prático 1 (Projeto 3).</p>
+  <div><p class="natureza">Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas (SA28S) da Universidade Tecnológica Federal do Paraná, Câmpus Dois Vizinhos, como entrega do Trabalho Prático 1.</p>
   <p class="natureza" style="margin-top:12pt">Professor: Erinaldo da Silva Pereira</p></div>
   <div><p class="caixa-alta">Dois Vizinhos</p><p class="caixa-alta">2026</p></div>
 </div>"""

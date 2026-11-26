@@ -1,0 +1,6 @@
+# Observação da seção 6.3: custo de uma senha de 2 MB no login
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:29.211Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+23:56:29.829  [depois] login com senha errada de 9 caracteres: 80 ms (mediana de 3)
+23:56:29.829  [depois] login com senha de 2.000.000 caracteres: 75 ms (mediana de 3)

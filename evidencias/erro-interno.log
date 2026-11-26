@@ -1,0 +1,6 @@
+# Achado A-11: hash inválido em /auth/verify
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:29.210Z
+# Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
+
+23:56:29.211  [depois] POST /auth/verify com hash "invalido" -> 500
+23:56:29.211  [depois] corpo da resposta (até 160 caracteres): Password verification failed with error "UnsupportedAlgorithm"

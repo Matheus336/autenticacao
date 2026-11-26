@@ -1,5 +1,5 @@
 # Achado: reutilização do mesmo código TOTP dentro da janela
-# Gerado por api/tests/seguranca.test.ts em 2026-11-25T00:08:56.843Z
+# Gerado por api/tests/seguranca.test.ts em 2026-11-25T23:56:23.082Z
 # Senhas, códigos TOTP, segredos e cookies aparecem mascarados.
 
-00:08:57.110  [depois] login com código C -> 200; mesmo código C de novo -> 200
+23:56:23.335  [depois] login com código C -> 200; mesmo código C de novo -> 200
