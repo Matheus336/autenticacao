@@ -27,7 +27,8 @@ INTEGRANTES = [
     "Murilo Pedron Dal Molim",
     "Pedro Luciano Moura Kuhn",
 ]
-TITULO = "Sistema Acadêmico de Autenticação: relatório técnico de auditoria de segurança"
+TITULO = "Sistema Acadêmico de Autenticação"
+SUBTITULO = "Relatório técnico de auditoria de segurança: Implementação de Autenticação Segura e Gestão de Identidades"
 
 CSS = """
 @page { size: A4; margin: 3cm 2cm 2cm 3cm; }
@@ -41,6 +42,7 @@ p.sem-recuo, li p, td p { text-indent: 0; }
 .caixa-alta { text-transform: uppercase; font-weight: bold; }
 .maiusculas { text-transform: uppercase; }
 .titulo-capa { font-size: 14pt; font-weight: bold; text-transform: uppercase; line-height: 1.4; }
+.subtitulo-capa { font-size: 12pt; line-height: 1.4; margin-top: 8pt !important; }
 .autores p { line-height: 1.5; }
 .natureza { width: 8cm; margin-left: auto; text-align: justify !important; font-size: 10pt; line-height: 1.2; }
 h1.pre { font-size: 12pt; text-align: center; text-transform: uppercase; margin: 0 0 18pt 0; }
@@ -161,14 +163,14 @@ def montar_html(paginas):
   <div><p class="caixa-alta">Universidade Tecnológica Federal do Paraná</p>
   <p class="caixa-alta">Câmpus Dois Vizinhos</p></div>
   <div class="autores">{''.join(f'<p class="maiusculas">{n}</p>' for n in INTEGRANTES)}</div>
-  <div><p class="titulo-capa">{TITULO}</p></div>
+  <div><p class="titulo-capa">{TITULO}</p><p class="subtitulo-capa">{SUBTITULO}</p></div>
   <div><p class="caixa-alta">Dois Vizinhos</p><p class="caixa-alta">2026</p></div>
 </div>"""
     rosto = f"""
 <div class="pagina rosto">
   <div class="autores">{''.join(f'<p class="maiusculas">{n}</p>' for n in INTEGRANTES)}</div>
-  <div><p class="titulo-capa">{TITULO}</p></div>
-  <div><p class="natureza">Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas (SA28S) da Universidade Tecnológica Federal do Paraná, Câmpus Dois Vizinhos, como entrega do Trabalho Prático 1.</p>
+  <div><p class="titulo-capa">{TITULO}</p><p class="subtitulo-capa">{SUBTITULO}</p></div>
+  <div><p class="natureza">Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas (SA28S) da Universidade Tecnológica Federal do Paraná, Câmpus Dois Vizinhos, como entrega do Trabalho Prático 1, tema Implementação de Autenticação Segura e Gestão de Identidades.</p>
   <p class="natureza" style="margin-top:12pt">Professor: Erinaldo da Silva Pereira</p></div>
   <div><p class="caixa-alta">Dois Vizinhos</p><p class="caixa-alta">2026</p></div>
 </div>"""
@@ -207,7 +209,7 @@ def montar_html(paginas):
     sumario = f'<div class="pagina"><h1 class="pre">Sumário</h1><div class="sumario">{"".join(linhas_sum)}</div></div>'
 
     doc = f"""<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<title>{TITULO}</title><style>{CSS}</style></head><body>
+<title>{TITULO}: {SUBTITULO}</title><style>{CSS}</style></head><body>
 {capa}{rosto}{pre}{sumario}
 {''.join(corpo).replace('<h2 id="s-1-introdu', '<h2 style="break-before:auto;page-break-before:auto" id="s-1-introdu', 1)}
 </body></html>"""
@@ -264,7 +266,7 @@ def numerar(pdf_base, primeira, total, tmp):
         if i < len(nums.pages):
             pagina.merge_page(nums.pages[i])
         w.add_page(pagina)
-    w.add_metadata({"/Title": TITULO, "/Author": "; ".join(INTEGRANTES)})
+    w.add_metadata({"/Title": f"{TITULO}: {SUBTITULO}", "/Author": "; ".join(INTEGRANTES)})
     with open(SAIDA, "wb") as f:
         w.write(f)
 

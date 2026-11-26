@@ -6,7 +6,9 @@ SEGURANÇA E AUDITORIA EM SISTEMAS (SA28S)
 
 TRABALHO PRÁTICO 1
 
-**SISTEMA ACADÊMICO DE AUTENTICAÇÃO: RELATÓRIO TÉCNICO DE AUDITORIA DE SEGURANÇA**
+**SISTEMA ACADÊMICO DE AUTENTICAÇÃO**
+
+Relatório técnico de auditoria de segurança: Implementação de Autenticação Segura e Gestão de Identidades
 
 | Integrantes |
 | --- |
@@ -19,7 +21,7 @@ TRABALHO PRÁTICO 1
 | Murilo Pedron Dal Molim |
 | Pedro Luciano Moura Kuhn |
 
-Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas (SA28S) da Universidade Tecnológica Federal do Paraná, como entrega do Trabalho Prático 1.
+Relatório técnico apresentado à disciplina Segurança e Auditoria em Sistemas (SA28S) da Universidade Tecnológica Federal do Paraná, como entrega do Trabalho Prático 1, tema Implementação de Autenticação Segura e Gestão de Identidades.
 
 Professor: Erinaldo da Silva Pereira
 
